@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Past Papers — Worked Solutions</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Past Papers<small>COS341 · Worked Solutions</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="past-papers-index.html" class="active">Papers Index</a>
+      <a href="paper-2024-test1.html">2024 Test 1</a>
+      <a href="paper-2023-semester-test.html">2023 Semester Test</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker shared">Test Prep · Past Papers</span>
+  <h1 class="page-title">Past Papers, Fully Worked</h1>
+  <p class="subtitle">
+    Two previous COS341 semester tests, each solved end to end — every sub-question, with the
+    reasoning shown, not just the final answer. These draw directly on the LL(1)/SLR pipeline
+    and the lexical-analysis material covered elsewhere in this site, plus the intermediate-code
+    and type-checking conventions from later in the textbook.
+  </p>
+
+  <div class="card-grid">
+    <a class="nav-card shared" href="paper-2024-test1.html">
+      <h3>2024 Test 1</h3>
+      <p>A deliberately ambiguous 6-rule grammar, worked all the way through: language,
+      ambiguity proof, FIRST/FOLLOW, LL(1) conflict, control-NFA, minimized DFA, and the
+      resulting SLR table — including exactly where the conflict resurfaces. Plus a
+      do-while vs. repeat-until intermediate-code question.</p>
+      <span class="tag">Task A (7 parts) + Task B</span>
+    </a>
+    <a class="nav-card shared" href="paper-2023-semester-test.html">
+      <h3>2023 Semester Test</h3>
+      <p>Two competing grammars for the same rough language, analysed for LL(1) side by side —
+      one fails, one doesn't, and the worked Look-Ahead-Set tables show exactly why. Plus a full
+      control-NFA construction, and complete Type-Analysis and Intermediate-Code attribute
+      grammars for an 8-rule imperative language.</p>
+      <span class="tag">Questions A, B, C, D</span>
+    </a>
+  </div>
+
+  <div class="section">
+    <h2>Original exam PDFs</h2>
+    <div class="card-grid">
+      <a class="nav-card shared" href="../PDF/2024%20test1.1.pdf" target="_blank" rel="noopener">
+        <h3>2024 Test 1 PDF</h3>
+        <p>Open the original exam paper used for the worked solution above.</p>
+        <span class="tag">PDF · 2024 test1.1.pdf</span>
+      </a>
+      <a class="nav-card shared" href="../PDF/COS%20341%202023%20ST.pdf" target="_blank" rel="noopener">
+        <h3>2023 Semester Test PDF</h3>
+        <p>Open the original semester test used for the worked solution above.</p>
+        <span class="tag">PDF · COS 341 2023 ST.pdf</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">How to use these</span>
+    Try each sub-question yourself first, on paper, before reading the worked answer — these
+    are only useful as a check, not as a substitute for doing the derivation. Where a step
+    depends on a rule covered elsewhere on this site (FIRST/FOLLOW, the SLR construction,
+    NFA/DFA minimization), the solution links back to that page rather than re-explaining it
+    from scratch.
+  </div>
+
+</div>
+</body>
+</html>

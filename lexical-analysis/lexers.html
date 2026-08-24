@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexers &amp; Lexer Generators</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html" class="active">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">§1.8 · The practical part</span>
+  <h1 class="page-title">Lexers &amp; Lexer Generators</h1>
+  <p class="subtitle">
+    A single DFA recognises one language. A lexer needs to recognise <em>many</em> token types
+    at once, decide which one won when they overlap, and cut a continuous stream of characters
+    into discrete tokens. None of that is "an algorithm" in the crisp NFA→DFA sense — it's a
+    handful of practical conventions, and this is the section most people under-study because
+    of that.
+  </p>
+
+  <div class="callout">
+    <strong>Want to trace the algorithm on a real string?</strong>
+    The <a href="lexing-walkthrough.html">interactive walkthrough</a> runs the longest-match
+    algorithm below step by step, including the backtrack-on-failure case.
+  </div>
+
+  <div class="section">
+    <h2>Combining several token definitions into one DFA</h2>
+    <div class="rule-box">
+<span class="label">Construction</span>
+1. Build an NFA for each token's regex: N1, N2, ..., Nk
+2. Mark each NFA's accepting state with its token name
+3. Add ONE new start state, with an ε-transition into each Ni's start state
+4. Subset-construct the combined NFA into a single DFA, as usual
+5. A DFA accepting state may contain several marked NFA accepting states at once
+   (if the token languages overlap) — collect all their marks onto that DFA state
+    </div>
+    <p><strong>Worked example:</strong> combining three tokens — the keyword
+    <span class="mono">if</span>, identifiers <span class="mono">[a-z]+</span>, and integers
+    <span class="mono">[0-9]+</span>.</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>Input</th><th>Which token DFA states accept it?</th></tr>
+      <tr><td class="mono">if</td><td>both the <span class="mono">if</span>-keyword DFA <em>and</em> the identifier DFA (since "if" is also a valid identifier)</td></tr>
+      <tr><td class="mono">iffy</td><td>only the identifier DFA (doesn't match the keyword exactly)</td></tr>
+      <tr><td class="mono">42</td><td>only the integer DFA</td></tr>
+    </table>
+    <p>The first row is the overlap case — a single combined-DFA accepting state ends up
+    carrying both the <span class="mono">IF</span> mark and the <span class="mono">ID</span>
+    mark. Something has to break the tie.</p>
+  </div>
+
+  <div class="section">
+    <h2>Resolving overlap: priority by definition order</h2>
+    <p>Two options when token languages overlap: force the user to make them disjoint (and
+    error otherwise), or let priority decide. In practice, lexer generators use
+    <strong>priority</strong> — tokens defined earlier in the input win. This is why keyword
+    definitions are conventionally listed before the identifier definition: on the
+    <span class="mono">if</span>/<span class="mono">ID</span> overlap above, listing the
+    keyword first means the combined DFA's accepting state keeps only the
+    <span class="mono">IF</span> mark, discarding <span class="mono">ID</span>.</p>
+    <div class="callout warn">
+      <span class="label">This is not the whole story</span>
+      Priority only decides ties on strings that are exactly the <em>same length</em>. It does
+      NOT override length — see longest-match below, which takes priority over priority.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Splitting the input stream: longest match ("maximal munch")</h2>
+    <p>A string like <span class="mono">if17</span> could legally split many different ways —
+    one token <span class="mono">if17</span> (an identifier), or <span class="mono">if</span> +
+    <span class="mono">17</span> (keyword + integer), or even
+    <span class="mono">i</span> + <span class="mono">f17</span>. The near-universal convention
+    (C, Java, SML, most lexer generators) is: <strong>take the longest possible prefix that
+    matches any token</strong>. So <span class="mono">if17</span> is one identifier token —
+    length beats the keyword's earlier-definition priority.</p>
+
+    <div class="rule-box">
+<span class="label">The algorithm</span>
+Run the DFA forward from its start state, one character at a time, for as long as a
+transition is defined.
+
+At each step, if the CURRENT state is accepting, remember it (state + input position) —
+this overwrites any earlier remembered accepting state.
+
+Stop when either the input ends, or no transition is defined for the next character.
+
+  - If the current state (where you stopped) is accepting: emit that token, done.
+  - If not: roll back to the LAST remembered accepting state and position, emit the token
+    indicated there, and push the characters read since then back onto the input.
+
+Restart the DFA (from its start state) on whatever input remains, to find the next token.
+    </div>
+
+    <p><strong>Worked example:</strong> lexing <span class="mono">3e-y</span> against a
+    combined DFA for integers and floats. The DFA can legally read <span class="mono">3</span>
+    (accepting, as an integer), then continue to <span class="mono">e</span> and
+    <span class="mono">-</span> (still legal — could be starting a float's exponent), but then
+    finds no transition on <span class="mono">y</span>. Since the state after
+    <span class="mono">3e-</span> is <strong>not</strong> accepting, roll back to the last
+    accepting state — after just <span class="mono">3</span> — emit the integer token
+    <span class="mono">3</span>, and re-insert <span class="mono">e-</span> into the input
+    stream before continuing.</p>
+  </div>
+
+  <div class="section">
+    <h2>Lexical errors</h2>
+    <p>If no prefix of the remaining input matches any token at all, that's a lexical error.
+    Common recovery strategy: skip characters until a valid prefix is found again, so the lexer
+    can keep looking for <em>further</em> errors rather than stopping dead — useful for finding
+    several mistakes in one compile attempt. The catch: only the <strong>first</strong> reported
+    error is guaranteed to be a real error; everything after it might be a cascading artifact of
+    how much (or little) the recovery step skipped.</p>
+  </div>
+
+  <div class="section">
+    <h2>Lexer-generator mechanics worth knowing (§1.8.1)</h2>
+    <ul class="plain">
+      <li><strong>Quoting literals</strong> — a generator needs to tell a literal
+      <span class="mono">*</span> (multiplication symbol in the target language) apart from a
+      <span class="mono">*</span> meaning "zero or more" in the regex notation itself; typically
+      done by quoting the literal, e.g. <span class="mono">'*'</span>.</li>
+      <li><strong>Empty actions</strong> — whitespace and comment tokens typically have no
+      action at all; they're matched and silently discarded.</li>
+      <li><strong>Keyword-vs-identifier via table lookup, not DFA states</strong> — with many
+      keywords, encoding each as a separate DFA branch bloats the automaton. Cheaper: treat
+      every keyword as a special case of the identifier token, and have the identifier's action
+      look the matched string up in a keyword table, falling back to a plain identifier token if
+      it's not found.</li>
+      <li><strong>Nested comments need a counter, not just regex</strong> — arbitrarily-deep
+      nesting can't be recognised by a finite automaton alone (this connects directly to the
+      <a href="properties.html">limits-of-expressive-power</a> material). The workaround: the
+      action for a comment token maintains a global nesting-depth counter by hand.</li>
+      <li><strong>Multiple shared starting points</strong> — a single combined DFA can serve
+      more than one lexer (e.g. one token set for program text, another for that program's
+      input data) by giving it several start states, sharing structure where the token sets
+      overlap.</li>
+    </ul>
+  </div>
+
+  <div class="footer-nav">
+    <a href="minimization.html">← DFA Minimization</a>
+    <a href="properties.html">Next: Properties of Regular Languages →</a>
+  </div>
+
+</div>
+</body>
+</html>

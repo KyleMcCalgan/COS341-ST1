@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LL(1) Walkthrough — Building &amp; Using the Table</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="ll1.html">LL(1)</a>
+      <a href="slr.html">SLR</a>
+      <a href="compare.html">Compare</a>
+      <a href="ll1-walkthrough.html" class="active">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html">SLR Walkthrough</a>
+      <a href="ll0.html">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker ll1">Top-Down · Interactive Walkthrough</span>
+  <h1 class="page-title">Filling in — and then using — the LL(1) table</h1>
+  <p class="subtitle">
+    Same grammar as the <a href="ll1.html">LL(1) overview page</a>: <span class="mono">T→R</span>,
+    <span class="mono">T→aTc</span>, <span class="mono">R→ε</span>, <span class="mono">R→bR</span>,
+    with Nullable(T)=Nullable(R)=true, FIRST(T)={a,b}, FIRST(R)={b}, FOLLOW(T)=FOLLOW(R)={c,$}.
+    Three steppers below, in order: derive each rule's Look-Ahead Set first, then just read the
+    table straight off those sets, then run the finished table on a real string. Each click is
+    exactly one decision.
+  </p>
+
+  <div class="section">
+    <h2>Part 1 — Derive the Look-Ahead Set for each rule</h2>
+    <p>Before touching the table, work out one number per production: its
+    <strong>Look-Ahead Set</strong> — every terminal that could legally trigger choosing that
+    rule. This is exactly the quantity a homework question means when it asks
+    "provide the Look-Ahead-Set for each of the grammar's rules." The formula is the same
+    production-selection rule as before, just read as a set instead of a per-symbol test:</p>
+
+    <div class="rule-box">
+<span class="label">Look-Ahead Set of a production N → α</span>
+LA(N → α)  =  FIRST(α)                      if α is not Nullable
+           =  FIRST(α) ∪ FOLLOW(N)          if α is Nullable
+    </div>
+
+    <p>Once every rule has its LA set, filling the table in Part 2 is just copying: place the
+    rule in one column per symbol in its LA set. No re-deriving FIRST/FOLLOW at table-filling
+    time.</p>
+
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="la-title">—</p>
+        <span class="stepper-progress" id="la-progress">—</span>
+      </div>
+
+      <div class="table-scroll"><table class="build-table" id="la-table">
+        <tr><th>Rule</th><th>Nullable(α)</th><th>FIRST(α)</th><th>+ FOLLOW(N)?</th><th>Look-Ahead Set</th></tr>
+        <tr>
+          <td class="rowhead" style="text-align:left; padding-left:16px;">1: T→R</td>
+          <td class="empty" id="la-1-null">—</td>
+          <td class="empty" id="la-1-first">—</td>
+          <td class="empty" id="la-1-follow">—</td>
+          <td class="empty" id="la-1-set">—</td>
+        </tr>
+        <tr>
+          <td class="rowhead" style="text-align:left; padding-left:16px;">2: T→aTc</td>
+          <td class="empty" id="la-2-null">—</td>
+          <td class="empty" id="la-2-first">—</td>
+          <td class="empty" id="la-2-follow">—</td>
+          <td class="empty" id="la-2-set">—</td>
+        </tr>
+        <tr>
+          <td class="rowhead" style="text-align:left; padding-left:16px;">3: R→ε</td>
+          <td class="empty" id="la-3-null">—</td>
+          <td class="empty" id="la-3-first">—</td>
+          <td class="empty" id="la-3-follow">—</td>
+          <td class="empty" id="la-3-set">—</td>
+        </tr>
+        <tr>
+          <td class="rowhead" style="text-align:left; padding-left:16px;">4: R→bR</td>
+          <td class="empty" id="la-4-null">—</td>
+          <td class="empty" id="la-4-first">—</td>
+          <td class="empty" id="la-4-follow">—</td>
+          <td class="empty" id="la-4-set">—</td>
+        </tr>
+      </table></div>
+
+      <div class="explain-box ll1" id="la-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to derive the first rule's Look-Ahead Set.
+      </div>
+
+      <div class="dots" id="la-dots"></div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="la-prev">← Back</button>
+        <button class="step-btn primary ll1" id="la-next">Next →</button>
+        <button class="step-btn reset" id="la-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Part 2 — Fill in the table using each rule's Look-Ahead Set</h2>
+    <p>Every cell gets filled by the rule with a production that came from Part 1: place
+    <span class="mono">N → α</span> in row N, column c, for every symbol c in
+    <span class="mono">LA(N → α)</span>. No new derivation — just reading off what's already
+    been computed.</p>
+
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="build-title">—</p>
+        <span class="stepper-progress" id="build-progress">—</span>
+      </div>
+
+      <div class="table-scroll"><table class="build-table" id="build-table">
+        <tr><th></th><th>a</th><th>b</th><th>c</th><th>$</th></tr>
+        <tr>
+          <td class="rowhead">T</td>
+          <td class="empty" id="cell-T-a">—</td>
+          <td class="empty" id="cell-T-b">—</td>
+          <td class="empty" id="cell-T-c">—</td>
+          <td class="empty" id="cell-T-$">—</td>
+        </tr>
+        <tr>
+          <td class="rowhead">R</td>
+          <td class="empty" id="cell-R-a">—</td>
+          <td class="empty" id="cell-R-b">—</td>
+          <td class="empty" id="cell-R-c">—</td>
+          <td class="empty" id="cell-R-$">—</td>
+        </tr>
+      </table></div>
+
+      <div class="explain-box ll1" id="build-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to fill in the first production.
+      </div>
+
+      <div class="dots" id="build-dots"></div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="build-prev">← Back</button>
+        <button class="step-btn primary ll1" id="build-next">Next →</button>
+        <button class="step-btn reset" id="build-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Part 3 — Using the finished table to actually parse a string</h2>
+    <p>Now the table is complete. We parse <span class="mono">aabbbcc</span> (plus end
+    marker <span class="mono">$</span>) using the stack-and-table algorithm: pop the stack top;
+    if it's a terminal, match it against the input; if it's a nonterminal, look up
+    <span class="mono">table[nonterminal, next input symbol]</span> and push that production's
+    right-hand side. One click = one action.</p>
+
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="trace-title">—</p>
+        <span class="stepper-progress" id="trace-progress">—</span>
+      </div>
+
+      <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:6px;">
+        <div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Stack (top on the left)</div>
+          <div class="stack-chip-row" id="trace-stack"></div>
+        </div>
+        <div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Remaining input</div>
+          <div class="stack-chip-row" id="trace-input"></div>
+        </div>
+      </div>
+
+      <div class="explain-box ll1" id="trace-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to take the first parsing action.
+      </div>
+
+      <div class="ref-table-wrap">
+        <div class="table-scroll"><table class="build-table" id="ref-table" style="margin-top:16px;">
+          <tr><th></th><th>a</th><th>b</th><th>c</th><th>$</th></tr>
+          <tr>
+            <td class="rowhead">T</td>
+            <td class="filled ll1" id="ref-T-a">aTc</td>
+            <td class="filled ll1" id="ref-T-b">R</td>
+            <td class="filled ll1" id="ref-T-c">R</td>
+            <td class="filled ll1" id="ref-T-$">R</td>
+          </tr>
+          <tr>
+            <td class="rowhead">R</td>
+            <td class="empty" id="ref-R-a">—</td>
+            <td class="filled ll1" id="ref-R-b">bR</td>
+            <td class="filled ll1" id="ref-R-c">ε</td>
+            <td class="filled ll1" id="ref-R-$">ε</td>
+          </tr>
+        </table></div>
+      </div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="trace-prev">← Back</button>
+        <button class="step-btn primary ll1" id="trace-next">Next →</button>
+        <button class="step-btn reset" id="trace-reset">Reset</button>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--ink-soft); margin-top:14px;">Full trace so far:</p>
+      <div class="table-scroll"><table class="trace-table" id="trace-history">
+        <tr><th style="width:34px;">#</th><th>Stack</th><th>Input</th><th>Action</th></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="footer-nav">
+    <a href="ll1.html">← LL(1) Overview</a>
+    <a href="slr-walkthrough.html">Next: SLR Walkthrough →</a>
+  </div>
+
+</div>
+
+<script>
+/* ================= PART 1: LOOK-AHEAD SET DERIVATION ================= */
+const laSteps = [
+  {
+    rule: 1,
+    label: "Rule 1 · T → R",
+    nullable: "yes",
+    first: "{b}",
+    followUsed: "{c, $}  (added — α is Nullable)",
+    set: "{b, c, $}",
+    text: "α = R. Nullable(R) = true, so both parts of the formula apply: " +
+          "LA(T→R) = FIRST(R) ∪ FOLLOW(T) = {b} ∪ {c, $} = {b, c, $}."
+  },
+  {
+    rule: 2,
+    label: "Rule 2 · T → aTc",
+    nullable: "no",
+    first: "{a}",
+    followUsed: "not used",
+    set: "{a}",
+    text: "α = aTc starts with the terminal a, so Nullable(aTc) = false. Only the first case " +
+          "of the formula applies: LA(T→aTc) = FIRST(aTc) = {a}."
+  },
+  {
+    rule: 3,
+    label: "Rule 3 · R → ε",
+    nullable: "yes",
+    first: "{ }",
+    followUsed: "{c, $}  (added — α is Nullable)",
+    set: "{c, $}",
+    text: "α = ε is trivially Nullable, and FIRST(ε) is empty either way, so the entire " +
+          "Look-Ahead Set comes from FOLLOW: LA(R→ε) = FIRST(ε) ∪ FOLLOW(R) = ∅ ∪ {c, $} = {c, $}."
+  },
+  {
+    rule: 4,
+    label: "Rule 4 · R → bR",
+    nullable: "no",
+    first: "{b}",
+    followUsed: "not used",
+    set: "{b}",
+    text: "α = bR starts with the terminal b, so Nullable(bR) = false. LA(R→bR) = FIRST(bR) = {b}."
+  }
+];
+
+let laIdx = 0;
+
+function renderLA(){
+  document.getElementById('la-title').textContent = laIdx === 0 ? "Ready to start" : laSteps[laIdx-1].label;
+  document.getElementById('la-progress').textContent = `Step ${laIdx} of ${laSteps.length}`;
+
+  laSteps.forEach((s,i)=>{
+    const done = i < laIdx;
+    ["null","first","follow","set"].forEach(col=>{
+      const el = document.getElementById(`la-${s.rule}-${col}`);
+      if (done){
+        el.className = "filled ll1";
+        if (col === "null") el.textContent = s.nullable;
+        if (col === "first") el.textContent = s.first;
+        if (col === "follow") el.textContent = s.followUsed;
+        if (col === "set") el.textContent = s.set;
+      } else {
+        el.className = "empty";
+        el.textContent = "—";
+      }
+    });
+  });
+
+  if (laIdx > 0){
+    const s = laSteps[laIdx-1];
+    ["null","first","follow","set"].forEach(col=>{
+      const el = document.getElementById(`la-${s.rule}-${col}`);
+      el.style.setProperty('--pulse-color', '#1f8a83');
+      el.classList.remove('glow'); void el.offsetWidth; el.classList.add('glow');
+    });
+  }
+
+  const explain = document.getElementById('la-explain');
+  if (laIdx === 0){
+    explain.innerHTML = `<span class="step-label">Step 0 · Not started</span>Click "Next" to derive the first rule's Look-Ahead Set.`;
+  } else {
+    const s = laSteps[laIdx-1];
+    explain.innerHTML = `<span class="step-label">${s.label}</span>${s.text}`;
+  }
+
+  const dotsWrap = document.getElementById('la-dots');
+  dotsWrap.innerHTML = "";
+  laSteps.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < laIdx ? ' done ll1' : '') + (i === laIdx-1 ? ' current' : '');
+    dotsWrap.appendChild(d);
+  });
+
+  document.getElementById('la-prev').disabled = laIdx === 0;
+  document.getElementById('la-next').disabled = laIdx === laSteps.length;
+}
+
+document.getElementById('la-next').addEventListener('click', ()=>{ if (laIdx < laSteps.length){ laIdx++; renderLA(); }});
+document.getElementById('la-prev').addEventListener('click', ()=>{ if (laIdx > 0){ laIdx--; renderLA(); }});
+document.getElementById('la-reset').addEventListener('click', ()=>{ laIdx = 0; renderLA(); });
+renderLA();
+
+/* ================= PART 2: TABLE CONSTRUCTION ================= */
+const buildSteps = [
+  {
+    title: "Production 1 — T → R",
+    label: "Step 1 · T → R",
+    text: "From Part 1: LA(T→R) = {b, c, $}. Place T→R in all three of those columns on the T row — done, no re-derivation needed.",
+    cells: [
+      {nt:"T", sym:"b", val:"T→R"},
+      {nt:"T", sym:"c", val:"T→R"},
+      {nt:"T", sym:"$", val:"T→R"},
+    ]
+  },
+  {
+    title: "Production 2 — T → aTc",
+    label: "Step 2 · T → aTc",
+    text: "From Part 1: LA(T→aTc) = {a}. One column, one cell.",
+    cells: [
+      {nt:"T", sym:"a", val:"T→aTc"},
+    ]
+  },
+  {
+    title: "Production 3 — R → ε",
+    label: "Step 3 · R → ε",
+    text: "From Part 1: LA(R→ε) = {c, $}. Place R→ε in both columns on the R row.",
+    cells: [
+      {nt:"R", sym:"c", val:"R→ε"},
+      {nt:"R", sym:"$", val:"R→ε"},
+    ]
+  },
+  {
+    title: "Production 4 — R → bR",
+    label: "Step 4 · R → bR",
+    text: "From Part 1: LA(R→bR) = {b}. One cell.",
+    cells: [
+      {nt:"R", sym:"b", val:"R→bR"},
+    ]
+  },
+  {
+    title: "Check what's left blank",
+    label: "Step 5 · Verify",
+    text: "Every LA set from Part 1 landed in its own cells with zero overlap — that's exactly " +
+          "what \"no conflicts\" looks like from this side. (R, a) was never touched by any " +
+          "rule's LA set: if the parser is expecting an R and sees an a next, there's no valid " +
+          "production, so that stays a real error cell.",
+    cells: []
+  }
+];
+
+let buildIdx = 0;
+const filledCells = {}; // key "T-a" -> value
+
+function renderBuild(){
+  document.getElementById('build-title').textContent = buildIdx === 0 ? "Ready to start" : buildSteps[buildIdx-1].title;
+  document.getElementById('build-progress').textContent = `Step ${buildIdx} of ${buildSteps.length}`;
+
+  // recompute filled cells cumulative up to buildIdx
+  for (const k in filledCells) delete filledCells[k];
+  for (let i=0;i<buildIdx;i++){
+    buildSteps[i].cells.forEach(c => filledCells[`${c.nt}-${c.sym}`] = c.val);
+  }
+
+  ["T","R"].forEach(nt=>{
+    ["a","b","c","$"].forEach(sym=>{
+      const el = document.getElementById(`cell-${nt}-${sym}`);
+      const key = `${nt}-${sym}`;
+      if (filledCells[key]){
+        el.textContent = filledCells[key];
+        el.className = "filled ll1";
+      } else {
+        el.textContent = "—";
+        el.className = "empty";
+      }
+    });
+  });
+
+  // glow the newest cells
+  if (buildIdx > 0){
+    buildSteps[buildIdx-1].cells.forEach(c=>{
+      const el = document.getElementById(`cell-${c.nt}-${c.sym}`);
+      el.style.setProperty('--pulse-color', '#1f8a83');
+      el.classList.remove('glow'); void el.offsetWidth; el.classList.add('glow');
+    });
+  }
+
+  const explain = document.getElementById('build-explain');
+  if (buildIdx === 0){
+    explain.innerHTML = `<span class="step-label">Step 0 · Not started</span>Click "Next" to fill in the first production.`;
+  } else {
+    const s = buildSteps[buildIdx-1];
+    explain.innerHTML = `<span class="step-label">${s.label}</span>${s.text}`;
+  }
+
+  // dots
+  const dotsWrap = document.getElementById('build-dots');
+  dotsWrap.innerHTML = "";
+  buildSteps.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < buildIdx ? ' done ll1' : '') + (i === buildIdx-1 ? ' current' : '');
+    dotsWrap.appendChild(d);
+  });
+
+  document.getElementById('build-prev').disabled = buildIdx === 0;
+  document.getElementById('build-next').disabled = buildIdx === buildSteps.length;
+}
+
+document.getElementById('build-next').addEventListener('click', ()=>{ if (buildIdx < buildSteps.length){ buildIdx++; renderBuild(); }});
+document.getElementById('build-prev').addEventListener('click', ()=>{ if (buildIdx > 0){ buildIdx--; renderBuild(); }});
+document.getElementById('build-reset').addEventListener('click', ()=>{ buildIdx = 0; renderBuild(); });
+renderBuild();
+
+/* ================= PART 3: PARSE TRACE ================= */
+const traceSteps = [
+  {stackBefore:"T $", inputBefore:"a a b b b c c $", type:"expand", cell:["T","a"], label:"Expand T→aTc", detail:"Top of stack is T (a nonterminal). Next input is a. table[T,a] = T→aTc, so pop T and push a, T, c (a ends up on top).", stackAfter:"a T c $", inputAfter:"a a b b b c c $"},
+  {stackBefore:"a T c $", inputBefore:"a a b b b c c $", type:"match", cell:null, label:"Match a", detail:"Top of stack is the terminal a. It matches the next input symbol, so consume both.", stackAfter:"T c $", inputAfter:"a b b b c c $"},
+  {stackBefore:"T c $", inputBefore:"a b b b c c $", type:"expand", cell:["T","a"], label:"Expand T→aTc", detail:"Top is T again, next input is a. Same table lookup as step 1: table[T,a] = T→aTc.", stackAfter:"a T c c $", inputAfter:"a b b b c c $"},
+  {stackBefore:"a T c c $", inputBefore:"a b b b c c $", type:"match", cell:null, label:"Match a", detail:"Terminal on top matches next input — consume both.", stackAfter:"T c c $", inputAfter:"b b b c c $"},
+  {stackBefore:"T c c $", inputBefore:"b b b c c $", type:"expand", cell:["T","b"], label:"Expand T→R", detail:"Top is T, next input is b. table[T,b] = T→R because b ∈ FIRST(R) directly — this cell came from Rule (1), not the Nullable/FOLLOW case. Pop T, push R.", stackAfter:"R c c $", inputAfter:"b b b c c $"},
+  {stackBefore:"R c c $", inputBefore:"b b b c c $", type:"expand", cell:["R","b"], label:"Expand R→bR", detail:"Top is R, next input is b. table[R,b] = R→bR. Pop R, push b, R.", stackAfter:"b R c c $", inputAfter:"b b b c c $"},
+  {stackBefore:"b R c c $", inputBefore:"b b b c c $", type:"match", cell:null, label:"Match b", detail:"Terminal on top matches next input.", stackAfter:"R c c $", inputAfter:"b b c c $"},
+  {stackBefore:"R c c $", inputBefore:"b b c c $", type:"expand", cell:["R","b"], label:"Expand R→bR", detail:"Same rule fires again — there are three b's to get through.", stackAfter:"b R c c $", inputAfter:"b b c c $"},
+  {stackBefore:"b R c c $", inputBefore:"b b c c $", type:"match", cell:null, label:"Match b", detail:"Consume the second b.", stackAfter:"R c c $", inputAfter:"b c c $"},
+  {stackBefore:"R c c $", inputBefore:"b c c $", type:"expand", cell:["R","b"], label:"Expand R→bR", detail:"Third and last time this production fires.", stackAfter:"b R c c $", inputAfter:"b c c $"},
+  {stackBefore:"b R c c $", inputBefore:"b c c $", type:"match", cell:null, label:"Match b", detail:"Consume the third b — the run of b's is exhausted.", stackAfter:"R c c $", inputAfter:"c c $"},
+  {stackBefore:"R c c $", inputBefore:"c c $", type:"expand", cell:["R","c"], label:"Expand R→ε", detail:"Top is R, next input is c. table[R,c] = R→ε — the Nullable/FOLLOW case. Pop R, push nothing.", stackAfter:"c c $", inputAfter:"c c $"},
+  {stackBefore:"c c $", inputBefore:"c c $", type:"match", cell:null, label:"Match c", detail:"Terminal matches — consume both.", stackAfter:"c $", inputAfter:"c $"},
+  {stackBefore:"c $", inputBefore:"c $", type:"match", cell:null, label:"Match c", detail:"Terminal matches — consume both.", stackAfter:"$", inputAfter:"$"},
+  {stackBefore:"$", inputBefore:"$", type:"accept", cell:null, label:"Match $ — ACCEPT", detail:"Stack and input are both just the end marker. They match, the stack empties, and every input symbol has been consumed: the string is accepted.", stackAfter:"", inputAfter:""},
+];
+
+let traceIdx = 0;
+
+function chipRow(str, highlightFirst){
+  if (!str) return `<span class="chip" style="opacity:.5;">empty</span>`;
+  return str.split(" ").map((tok,i)=>{
+    const cls = (i===0 && highlightFirst) ? "chip top" : "chip";
+    return `<span class="${cls}">${tok}</span>`;
+  }).join("");
+}
+
+function clearRefHighlight(){
+  document.querySelectorAll('#ref-table td').forEach(td=>td.classList.remove('cell-active'));
+}
+
+function renderTrace(){
+  document.getElementById('trace-title').textContent = traceIdx === 0 ? "Ready to start" : traceSteps[traceIdx-1].label;
+  document.getElementById('trace-progress').textContent = `Step ${traceIdx} of ${traceSteps.length}`;
+
+  const cur = traceIdx === 0 ? {stackBefore:"T $", inputBefore:"a a b b b c c $"} : traceSteps[traceIdx-1];
+  const stackShown = traceIdx === 0 ? cur.stackBefore : cur.stackAfter;
+  const inputShown = traceIdx === 0 ? cur.inputBefore : cur.inputAfter;
+
+  document.getElementById('trace-stack').innerHTML = chipRow(stackShown, true);
+  document.getElementById('trace-input').innerHTML = chipRow(inputShown, true);
+
+  clearRefHighlight();
+  const explain = document.getElementById('trace-explain');
+  if (traceIdx === 0){
+    explain.innerHTML = `<span class="step-label">Step 0 · Not started</span>Click "Next" to take the first parsing action.`;
+  } else {
+    const s = traceSteps[traceIdx-1];
+    explain.innerHTML = `<span class="step-label">${s.label}</span>${s.detail}`;
+    if (s.cell){
+      const el = document.getElementById(`ref-${s.cell[0]}-${s.cell[1]}`);
+      if (el) el.classList.add('cell-active');
+    }
+  }
+
+  // history table
+  const hist = document.getElementById('trace-history');
+  hist.innerHTML = `<tr><th style="width:34px;">#</th><th>Stack</th><th>Input</th><th>Action</th></tr>`;
+  for (let i=0;i<traceIdx;i++){
+    const s = traceSteps[i];
+    const cls = i === traceIdx-1 ? ` class="current-row ll1"` : "";
+    const actionCls = s.type === "accept" ? "action-accept" : (s.type === "expand" ? "action-expand" : "action-match");
+    hist.innerHTML += `<tr${cls}><td class="step-idx">${i+1}</td><td>${s.stackBefore}</td><td>${s.inputBefore}</td><td class="${actionCls}">${s.label}</td></tr>`;
+  }
+
+  document.getElementById('trace-prev').disabled = traceIdx === 0;
+  document.getElementById('trace-next').disabled = traceIdx === traceSteps.length;
+}
+
+document.getElementById('trace-next').addEventListener('click', ()=>{ if (traceIdx < traceSteps.length){ traceIdx++; renderTrace(); }});
+document.getElementById('trace-prev').addEventListener('click', ()=>{ if (traceIdx > 0){ traceIdx--; renderTrace(); }});
+document.getElementById('trace-reset').addEventListener('click', ()=>{ traceIdx = 0; renderTrace(); });
+renderTrace();
+</script>
+
+</body>
+</html>

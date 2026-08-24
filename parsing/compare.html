@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LL(1) vs SLR — Side by Side</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="ll1.html">LL(1)</a>
+      <a href="slr.html">SLR</a>
+      <a href="compare.html" class="active">Compare</a>
+      <a href="ll1-walkthrough.html">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html">SLR Walkthrough</a>
+      <a href="ll0.html">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker shared">Synthesis</span>
+  <h1 class="page-title">Same grammar, two tables</h1>
+  <p class="subtitle">
+    Grammar 2.9 is small enough that both pipelines can be held in your head at once. Put the
+    two resulting tables next to each other and the difference in what's actually being
+    "looked up" becomes obvious.
+  </p>
+
+  <div class="section">
+    <h2>The two tables</h2>
+    <table class="compare-table">
+      <tr>
+        <th>&nbsp;</th>
+        <th class="ll1col">LL(1) table</th>
+        <th class="slrcol">SLR table</th>
+      </tr>
+      <tr>
+        <td class="feature">Row index</td>
+        <td>Nonterminal (T, R)</td>
+        <td>DFA state (0–7)</td>
+      </tr>
+      <tr>
+        <td class="feature">Column index</td>
+        <td>Next input terminal</td>
+        <td>Next input terminal <em>or</em> nonterminal</td>
+      </tr>
+      <tr>
+        <td class="feature">Cell contents</td>
+        <td>A production to expand with</td>
+        <td>shift / reduce / go / accept / error</td>
+      </tr>
+      <tr>
+        <td class="feature">What decides a cell</td>
+        <td>FIRST(α), or Nullable(α) and FOLLOW(N)</td>
+        <td>An automaton transition (shift/go), or FOLLOW(N) for a completed item (reduce)</td>
+      </tr>
+      <tr>
+        <td class="feature">Stack holds</td>
+        <td>The unmatched suffix of the current top-down derivation (nonterminals + terminals
+        still to be expanded/matched)</td>
+        <td>The already-recognised bottom-up prefix (terminals + nonterminals already reduced),
+        interleaved with DFA states</td>
+      </tr>
+      <tr>
+        <td class="feature">A "step" is</td>
+        <td>Pop a nonterminal, look up (N, input), push its right-hand side</td>
+        <td>Look up (state, input): either push input + advance state (shift), or pop a
+        right-hand side and push its nonterminal (reduce)</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>What each one can and can't tolerate in a grammar</h2>
+    <table class="compare-table">
+      <tr>
+        <th>Grammar property</th>
+        <th class="ll1col">LL(1)</th>
+        <th class="slrcol">SLR</th>
+      </tr>
+      <tr>
+        <td class="feature">Left-recursion</td>
+        <td>Breaks it outright — FIRST of the recursive production always contains FIRST(N)
+        itself, so it swallows every other production's FIRST set. Must rewrite (Step 2).</td>
+        <td>Not a problem. Bottom-up parsing recognises a left-recursive right-hand side just
+        fine since it's built by repeated reduction, not by prediction.</td>
+      </tr>
+      <tr>
+        <td class="feature">Common prefixes (needs left-factoring)</td>
+        <td>Breaks it — overlapping FIRST sets on the same nonterminal. Must rewrite (Step 3).</td>
+        <td>Usually fine — the automaton just delays the shift/reduce decision until the
+        common prefix has been consumed and the input diverges.</td>
+      </tr>
+      <tr>
+        <td class="feature">Genuine ambiguity</td>
+        <td>Always breaks it. No rewrite of an ambiguous grammar removes the ambiguity itself
+        (Step 1 must happen before anything else).</td>
+        <td>Always breaks it too — same underlying language-level problem, just surfaces as a
+        table conflict instead of a table-cell overlap.</td>
+      </tr>
+      <tr>
+        <td class="feature">Escape hatch when rewriting doesn't fully work</td>
+        <td>Production priorities (Step 7) — narrow, mostly for cases like dangling-else.</td>
+        <td>Operator-precedence declarations (§2.15) — broader; can delete individual
+        conflicting table entries directly without touching the grammar.</td>
+      </tr>
+      <tr>
+        <td class="feature">Grammar class covered</td>
+        <td>Strict subset of unambiguous CFGs (the LL(1) grammars)</td>
+        <td>Larger subset of unambiguous CFGs than LL(1) — every LL(1) grammar is SLR, but not
+        vice versa</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>What "the parser gets stuck" looks like in each</h2>
+    <div class="card-grid">
+      <div class="nav-card ll1" style="cursor:default;">
+        <h3>LL(1) stuck</h3>
+        <p>The top of the stack is a nonterminal N, the next input symbol is c, and
+        <span class="mono">table[N, c]</span> is empty — no production is ever chosen, so
+        nothing gets pushed and the mismatch is detected before any wrong terminal is
+        consumed. Getting stuck here means the grammar predicted wrong, not that it read too
+        much.</p>
+      </div>
+      <div class="nav-card slr" style="cursor:default;">
+        <h3>SLR stuck</h3>
+        <p>The top of the stack is state s, the next input symbol is c, and
+        <span class="mono">table[s, c]</span> has no shift, reduce, or accept action —
+        error. Because SLR delays commitment (it shifts first and only reduces once a whole
+        right-hand side is recognisable), it can consume more input before discovering the
+        string doesn't belong to the language than an LL(1) parser would.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>The shared middle: FOLLOW</h2>
+    <p>FOLLOW(N) is computed <em>identically</em> for both — same definition, same constraint
+    generation, same fixed-point solve. What differs is only how it's spent afterward:</p>
+    <ul class="plain">
+      <li><strong>LL(1):</strong> FOLLOW(N) tells you when it's safe to pick N's
+      <em>nullable</em> production, before you've read anything that belongs to N.</li>
+      <li><strong>SLR:</strong> FOLLOW(N) tells you when it's safe to <em>reduce</em> a
+      completed right-hand side back to N, after you've already read everything that belongs
+      to it.</li>
+    </ul>
+    <p>Nullable and FIRST, by contrast, are LL(1)-specific — SLR replaces that predictive
+    machinery with the LR(0) automaton instead, since it doesn't need to guess a production in
+    advance.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="slr.html">← SLR Parsing</a>
+    <a href="ll0.html">Next: On "LL(0)" →</a>
+  </div>
+
+</div>
+</body>
+</html>

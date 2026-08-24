@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFA → DFA: The Subset Construction</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html" class="active">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">NFA → DFA</span>
+  <h1 class="page-title">Deterministic Finite Automata &amp; the Subset Construction</h1>
+  <p class="subtitle">
+    A DFA is an NFA with the nondeterminism surgically removed: no ε-transitions, and never two
+    identically-labelled transitions out of the same state. That determinism is exactly what
+    makes it cheap to run — table lookup, one step per input character, no backtracking.
+  </p>
+
+  <div class="callout">
+    <strong>Want to build this table yourself, one state at a time?</strong>
+    The <a href="subset-construction-walkthrough.html">interactive walkthrough</a> steps
+    through the exact work-list algorithm below on this page's worked example.
+  </div>
+
+  <div class="section">
+    <h2>DFA fundamentals</h2>
+    <p>Two restrictions turn an NFA into a DFA:</p>
+    <ul class="plain">
+      <li>No ε-transitions.</li>
+      <li>No two transitions out of the same state carry the same label.</li>
+    </ul>
+    <p>This means the transition relation is a genuine (partial) <strong>function</strong>
+    δ(state, symbol) → state. Implementation is direct: a 2D table cross-indexed by state and
+    symbol gives the next state (or "no transition" = error), and a 1D table marks which states
+    are accepting.</p>
+  </div>
+
+  <div class="section">
+    <h2>ε-closure — the piece that makes conversion possible</h2>
+    <div class="rule-box">
+<span class="label">Definition 1.2</span>
+ε-closure(M) = the smallest set X such that:
+  M ⊆ X, and
+  if s ∈ X and there's a transition s -ε-> t, then t ∈ X
+
+<span class="cm">i.e.: start with M, and keep adding anything reachable by ε-transitions
+alone, until nothing new gets added.</span>
+    </div>
+    <p>This is a genuine fixed-point computation — same style as Nullable/FIRST/FOLLOW on the
+    parsing side, just over sets of NFA states instead of grammar properties. It's solved the
+    same way: start from the seed set, repeatedly apply the "add anything one ε-step away"
+    rule, stop when nothing changes.</p>
+  </div>
+
+  <div class="section">
+    <h2>The Subset Construction (Algorithm 1.3)</h2>
+    <p>The core idea: simulate <em>every</em> possible NFA path at once by tracking the whole
+    <em>set</em> of NFA states you could currently be in. Each distinct reachable set becomes
+    one DFA state.</p>
+    <div class="rule-box">
+<span class="label">Algorithm 1.3, as a work-list procedure</span>
+s0' := ε-closure({n0})              <span class="cm">n0 = the NFA's start state</span>
+S'  := { s0' }   (unmarked)
+
+while there is an unmarked state s' in S':
+    mark s'
+    for each symbol c in the alphabet:
+        T := { t | s ∈ s' and s --c--> t is an NFA transition }
+        target := ε-closure(T)
+        if target is nonempty:
+            if target ∉ S': add target to S' (unmarked)
+            record  move(s', c) = target
+
+<span class="cm">A DFA state s' is accepting iff s' contains at least one accepting NFA state.</span>
+    </div>
+    <p>This is the exact same "unmarked work-list" pattern used to solve ε-closure itself, and
+    the same pattern used for the LL(1) table's FIRST/FOLLOW fixed points — pick an unmarked
+    item, process it, mark it, repeat until nothing unmarked remains.</p>
+  </div>
+
+  <div class="section">
+    <h2>Worked in full: (a|b)*ac</h2>
+    <p>Starting from the <a href="nfa.html">8-state NFA</a> built on the previous page.</p>
+
+    <table class="data">
+      <tr><th>DFA state</th><th>= ε-closure of</th><th>NFA states it contains</th><th>Accepting?</th></tr>
+      <tr><td>s0'</td><td>ε-closure({1})</td><td class="hl">{1, 2, 5, 6, 7}</td><td>no</td></tr>
+      <tr><td>s1'</td><td>ε-closure({3, 8})</td><td class="hl">{1, 2, 3, 5, 6, 7, 8}</td><td>no</td></tr>
+      <tr><td>s2'</td><td>ε-closure({8})</td><td class="hl">{1, 2, 5, 6, 7, 8}</td><td>no</td></tr>
+      <tr><td>s3'</td><td>ε-closure({4})</td><td class="hl">{4}</td><td class="hl">yes</td></tr>
+    </table>
+
+    <p style="font-size:0.85rem; color:var(--ink-soft);">
+    s0' comes from following 1's own ε-transitions (to 5, and from there to 6 and 7) — note
+    it does <em>not</em> include 8, since 6 and 7 need an a or b (not ε) to reach 8.
+    move(s0', a) collects every NFA state reachable on <span class="mono">a</span> from
+    {1,2,5,6,7} — that's just 3 (from 2) and 8 (from 6) — then closes under ε, pulling state 1
+    back in via 8's loop, and everything ε-reachable from 1. move(s0', c) is empty: nothing in
+    {1,2,5,6,7} has a c-transition.</p>
+
+    <table class="data">
+      <tr><th>move</th><th>a</th><th>b</th><th>c</th></tr>
+      <tr><td>s0'</td><td class="hl">s1'</td><td class="hl">s2'</td><td>—</td></tr>
+      <tr><td>s1'</td><td class="hl">s1'</td><td class="hl">s2'</td><td class="hl">s3'</td></tr>
+      <tr><td>s2'</td><td class="hl">s1'</td><td class="hl">s2'</td><td>—</td></tr>
+      <tr><td>s3'</td><td>—</td><td>—</td><td>—</td></tr>
+    </table>
+
+    <div class="diagram">
+      <svg viewBox="0 -20 620 330" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrD" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L8,3 z" fill="#8a8f99"/>
+          </marker>
+        </defs>
+        <path class="edge" d="M10,140 L45,140" marker-end="url(#arrD)"/>
+
+        <path class="edge" d="M75,120 L225,80" marker-end="url(#arrD)"/> <!-- s0->s1 a -->
+        <path class="edge" d="M75,160 L225,200" marker-end="url(#arrD)"/> <!-- s0->s2 b -->
+        <path class="edge" d="M242,45 C 222,-8 292,-8 272,45" marker-end="url(#arrD)"/> <!-- s1 self a -->
+        <path class="edge" d="M246,96 C 236,140 236,140 246,182" marker-end="url(#arrD)"/> <!-- s1->s2 b -->
+        <path class="edge" d="M290,90 L430,140" marker-end="url(#arrD)"/> <!-- s1->s3 c -->
+        <path class="edge" d="M242,235 C 222,288 292,288 272,235" marker-end="url(#arrD)"/> <!-- s2 self b -->
+        <path class="edge" d="M264,178 C 274,140 274,140 264,98" marker-end="url(#arrD)"/> <!-- s2->s1 a -->
+
+        <circle class="state" cx="70" cy="140" r="28"/>
+        <text class="statelbl" x="70" y="146">s0'</text>
+
+        <circle class="state" cx="255" cy="70" r="28"/>
+        <text class="statelbl" x="255" y="76">s1'</text>
+
+        <circle class="state" cx="255" cy="210" r="28"/>
+        <text class="statelbl" x="255" y="216">s2'</text>
+
+        <circle class="state accept" cx="470" cy="140" r="28"/>
+        <circle cx="470" cy="140" r="22" fill="none" stroke="#3457a6" stroke-width="2"/>
+        <text class="statelbl" x="470" y="146">s3'</text>
+
+        <text class="edgelbl" x="150" y="90">a</text>
+        <text class="edgelbl" x="150" y="200">b</text>
+        <text class="edgelbl" x="257" y="0">a (self)</text>
+        <text class="edgelbl" x="200" y="140">b</text>
+        <text class="edgelbl" x="300" y="140">a</text>
+        <text class="edgelbl" x="360" y="95">c</text>
+        <text class="edgelbl" x="257" y="322">b (self)</text>
+      </svg>
+      <figcaption>The DFA for (a|b)*ac — 4 states from an 8-state NFA. Note s0' and s2' have
+      identical outgoing behaviour (a→s1', b→s2'(self)) — that redundancy is exactly what
+      <a href="minimization.html">minimization</a> collapses next.</figcaption>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Size vs. Speed (§1.6)</h2>
+    <table class="compare-table">
+      <tr><th>&nbsp;</th><th>NFA / regex direct simulation</th><th>DFA table lookup</th></tr>
+      <tr><td class="feature">Runtime</td><td>≈ O(c·|N|·|v|) — c a constant, |N| automaton size, |v| input length</td><td>O(k·|v|) — k independent of automaton size</td></tr>
+      <tr><td class="feature">Size</td><td>Linear in the regex</td><td>Up to 2ⁿ−1 states from an n-state NFA in the worst case</td></tr>
+    </table>
+    <p>In practice, DFAs built from real programming-language token regexes rarely blow up
+    anywhere near that worst case — which is why nearly all production lexers are DFA-based
+    despite the theoretical risk.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="nfa.html">← Regex → NFA</a>
+    <a href="minimization.html">Next: DFA Minimization →</a>
+  </div>
+
+</div>
+</body>
+</html>

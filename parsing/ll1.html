@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LL(1) Parsing — Full Pipeline</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="ll1.html" class="active">LL(1)</a>
+      <a href="slr.html">SLR</a>
+      <a href="compare.html">Compare</a>
+      <a href="ll1-walkthrough.html">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html">SLR Walkthrough</a>
+      <a href="ll0.html">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker ll1">Top-Down · Predictive Parsing</span>
+  <h1 class="page-title">LL(1) Parsing</h1>
+  <p class="subtitle">
+    Left-to-right input, Leftmost derivation, 1 symbol of lookahead. The parser always expands
+    the leftmost nonterminal, and at each expansion it must choose the right production using
+    only the next input symbol. Everything in this pipeline exists to make that choice
+    deterministic — or to reveal that it can't be.
+  </p>
+
+  <div class="callout">
+    <strong>Want to click through this instead of just reading it?</strong>
+    The <a href="ll1-walkthrough.html">interactive walkthrough</a> builds this exact table
+    one production at a time, then runs the finished table on a real string, one parsing
+    action per click.
+  </div>
+
+  <div class="section">
+    <h2>The 7-step construction (§2.12.3)</h2>
+
+    <div class="step ll1">
+      <h3><span class="step-num">1</span>Eliminate ambiguity</h3>
+      <p>Remove ambiguity that isn't fixable just by prioritising productions. An ambiguous
+      grammar has more than one syntax tree for some string — no lookahead scheme can save
+      that, because the ambiguity is a property of the language description, not of how far
+      ahead you peek.</p>
+    </div>
+
+    <div class="step ll1">
+      <h3><span class="step-num">2</span>Eliminate left-recursion</h3>
+      <p>A left-recursive nonterminal <span class="mono">N → Nα | β</span> is fatal for LL(1):
+      FIRST(Nα) always contains FIRST(N), so it swallows the FIRST sets of every other
+      production for N. Direct left-recursion is rewritten mechanically:</p>
+      <div class="rule-box">
+<span class="label">Direct left-recursion removal</span>
+N → N α₁ | N α₂ | ... | N αₘ | β₁ | β₂ | ... | βₙ
+<span class="cm">     (the βᵢ do not themselves start with N)</span>
+
+rewrites to:
+
+N  → β₁ N' | β₂ N' | ... | βₙ N'
+N' → α₁ N' | α₂ N' | ... | αₘ N' | ε
+      </div>
+      <p>Indirect left-recursion (mutual recursion between nonterminals, or a nullable prefix
+      hiding an N further down the sequence) has to be converted to direct left-recursion
+      first before this rule applies.</p>
+    </div>
+
+    <div class="step ll1">
+      <h3><span class="step-num">3</span>Left-factorise</h3>
+      <p>If two productions for the same nonterminal share a common prefix, their FIRST sets
+      overlap by construction. Factor the shared prefix into one production and push the
+      differing suffixes into a new auxiliary nonterminal, so the choice is deferred until the
+      input actually diverges.</p>
+    </div>
+
+    <div class="step ll1">
+      <h3><span class="step-num">4</span>Augment the grammar</h3>
+      <p>Add <span class="mono">S' → S $</span>, where S' is a new start symbol and
+      <span class="mono">$</span> is a new terminal marking end-of-input. This is purely
+      bookkeeping for FOLLOW: it lets <span class="mono">$</span> fall out of FOLLOW(N)
+      naturally instead of needing a special case.</p>
+    </div>
+
+    <div class="step ll1">
+      <h3><span class="step-num">5</span>Compute Nullable, FIRST, FOLLOW</h3>
+      <p>Three fixed-point computations, strictly in this order, because each later one
+      depends on the earlier ones.</p>
+
+      <div class="rule-box">
+<span class="label">Algorithm 2.4 — Nullable(α)</span>
+Nullable(ε)       = true
+Nullable(a)       = false                         <span class="cm">a is a terminal</span>
+Nullable(α β)     = Nullable(α) ∧ Nullable(β)
+Nullable(N)       = Nullable(α₁) ∨ ... ∨ Nullable(αₙ)
+                    <span class="cm">where N → α₁, ..., N → αₙ are all productions for N</span>
+      </div>
+
+      <div class="rule-box">
+<span class="label">Algorithm 2.5 — FIRST(α)</span>
+FIRST(ε)          = ∅
+FIRST(a)          = {a}
+FIRST(α β)        = FIRST(α) ∪ FIRST(β)   if Nullable(α)
+                  = FIRST(α)              if not Nullable(α)
+FIRST(N)          = FIRST(α₁) ∪ ... ∪ FIRST(αₙ)
+      </div>
+
+      <div class="rule-box">
+<span class="label">Definition 2.6 + constraints — FOLLOW(N)</span>
+a ∈ FOLLOW(N)  iff  S ⇒* α N β  and  a ∈ FIRST(β)   (for some α, β)
+
+<span class="cm">Each production M → α N β generates:</span>
+  FIRST(β)      ⊆ FOLLOW(N)                <span class="cm">always</span>
+  FOLLOW(M)     ⊆ FOLLOW(N)                <span class="cm">only if Nullable(β)</span>
+
+<span class="cm">Solve by: seed every FOLLOW set from the FIRST(β)-constraints,
+then iterate the FOLLOW(M) ⊆ FOLLOW(N) constraints to a fixed point.</span>
+      </div>
+
+      <p><strong>Worked on Grammar 2.9:</strong></p>
+      <table class="data">
+        <tr><th>Nonterminal</th><th>Nullable</th><th>FIRST</th><th>FOLLOW</th></tr>
+        <tr><td>T</td><td>true</td><td class="hl">{a, b}</td><td class="hl">{c, $}</td></tr>
+        <tr><td>R</td><td>true</td><td class="hl">{b}</td><td class="hl">{c, $}</td></tr>
+      </table>
+      <p style="font-size:0.85rem;">Per-production nullability, using Algorithm 2.4 directly on
+      each right-hand side: <span class="mono">T→R</span> is nullable (R is), <span
+      class="mono">T→aTc</span> is not (starts with a terminal), <span
+      class="mono">R→ε</span> is nullable trivially, <span class="mono">R→bR</span> is not.</p>
+    </div>
+
+    <div class="step ll1">
+      <h3><span class="step-num">6</span>Build the table (or recursive-descent code)</h3>
+      <div class="rule-box">
+<span class="label">Production-selection rule</span>
+Choose  N → α  on input symbol c  if:
+  (1)  c ∈ FIRST(α),  or
+  (2)  Nullable(α)  and  c ∈ FOLLOW(N)
+      </div>
+      <p>Applied to Grammar 2.9, this gives the LL(1) table below — indexed by
+      <span class="mono">(nonterminal, next symbol)</span>, holding a production (or blank
+      for error) in each cell:</p>
+      <table class="data">
+        <tr><th></th><th>a</th><th>b</th><th>c</th><th>$</th></tr>
+        <tr><td>T</td><td class="hl">T→aTc</td><td class="hl">T→R</td><td class="hl">T→R</td><td class="hl">T→R</td></tr>
+        <tr><td>R</td><td></td><td class="hl">R→bR</td><td class="hl">R→ε</td><td class="hl">R→ε</td></tr>
+      </table>
+      <p>Two implementations read this same decision rule:</p>
+      <p><strong>Recursive descent</strong> — one function per nonterminal; the function
+      inspects the lookahead and branches directly, no explicit table:</p>
+      <pre class="code"><span class="kw">function</span> parseT():
+  <span class="kw">if</span> input <span class="kw">in</span> {b, c, $}:      <span class="cm">// FIRST(R) ∪ FOLLOW(T), Nullable(R)</span>
+    parseR()
+  <span class="kw">elif</span> input == a:            <span class="cm">// FIRST(aTc)</span>
+    match(a); parseT(); match(c)
+  <span class="kw">else</span>:
+    error()
+
+<span class="kw">function</span> parseR():
+  <span class="kw">if</span> input == b:
+    match(b); parseR()
+  <span class="kw">elif</span> input <span class="kw">in</span> {c, $}:       <span class="cm">// FOLLOW(R), Nullable(ε)</span>
+    <span class="cm">// choose R → ε — do nothing, return</span>
+  <span class="kw">else</span>:
+    error()</pre>
+      <p><strong>Table-driven</strong> — a stack holds the unmatched suffix of the current
+      derivation; a generic loop drives it using the table above:</p>
+      <pre class="code">stack := [S']; read(input)
+<span class="kw">loop</span>:
+  <span class="kw">if</span> stack <span class="kw">is</span> empty: <span class="kw">accept</span>
+  top := pop(stack)
+  <span class="kw">if</span> top <span class="kw">is</span> terminal:
+    <span class="kw">if</span> top == input: read(input)
+    <span class="kw">else</span>: error()
+  <span class="kw">else</span>:                          <span class="cm">// top is a nonterminal N</span>
+    <span class="kw">if</span> table[N, input] == (N → α): push α onto stack, reversed
+    <span class="kw">else</span>: error()</pre>
+    </div>
+
+    <div class="step ll1">
+      <h3><span class="step-num">7</span>Resolve remaining conflicts via priorities</h3>
+      <p>If a cell would need two different productions, an explicit priority ordering can
+      sometimes break the tie legitimately (this is how the classic dangling-else ambiguity
+      gets handled in practice). If no priority makes the choice meaningful, the grammar is
+      not LL(1) — loop back to steps 1–3, or switch to a stronger method like SLR.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>What a lookahead conflict actually looks like</h2>
+    <p>A conflict means: for some nonterminal N and some terminal c, more than one production
+    satisfies the selection rule from Step 6. The textbook names three shapes this takes:</p>
+    <ul class="plain">
+      <li>Two or more <em>nullable</em> productions for the same nonterminal — there's no way
+      to choose between them once neither can be ruled out by FIRST.</li>
+      <li>Overlapping FIRST sets between two productions of the same nonterminal.</li>
+      <li>A non-nullable production's FIRST set overlapping with the symbols that make a
+      nullable production (of the same nonterminal) a valid choice — i.e. overlap with
+      FOLLOW(N).</li>
+    </ul>
+    <div class="callout warn">
+      <span class="label">Worth internalising</span>
+      Absence of these conflicts <em>proves</em> the grammar is unambiguous for LL(1) purposes.
+      Presence of a conflict does <em>not</em> prove the grammar is ambiguous — some
+      unambiguous grammars still aren't LL(1).
+    </div>
+  </div>
+
+  <div class="footer-nav">
+    <a href="index.html">← Index</a>
+    <a href="slr.html">Next: SLR Parsing →</a>
+  </div>
+
+</div>
+</body>
+</html>

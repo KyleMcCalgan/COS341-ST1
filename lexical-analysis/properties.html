@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Properties of Regular Languages</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html" class="active">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">§1.9 · Theory</span>
+  <h1 class="page-title">Properties of Regular Languages</h1>
+  <p class="subtitle">
+    The most "exam question" section in this chapter, and the easiest to under-prepare for
+    because none of it is a step-by-step algorithm — it's a set of facts and proof techniques
+    about what regular languages can and can't express.
+  </p>
+
+  <div class="section">
+    <h2>Relative expressive power (§1.9.1)</h2>
+    <p>Regexes, NFAs, and DFAs all describe <strong>exactly</strong> the same class of
+    languages — the regular languages. What differs between them is <em>description size</em>,
+    not expressive reach:</p>
+    <ul class="plain">
+      <li>Regex → NFA: linear size increase (each subexpression contributes a bounded number of new states/transitions).</li>
+      <li>NFA → DFA: potentially <strong>exponential</strong> — up to 2ⁿ−1 states from an n-state NFA.</li>
+      <li>NFA/DFA → regex (the reverse direction): can also be exponentially larger — mostly of academic interest, since this direction is rarely needed in practice.</li>
+    </ul>
+
+    <div class="rule-box">
+<span class="label">The exponential-blowup proof construction (Fig. 1.14)</span>
+For each n, build an n-state NFA:
+  - state 0 is the start state, state n-1 is accepting
+  - state i has a transition to state i+1 on symbol a  (for i &lt; n-1)
+  - EVERY state has a transition to itself AND to state 0 on symbol b
+
+Represent a set of these states as an n-bit number (bit i = 1 iff state i is in the set).
+  - a transition on a doubles the number (shifts left), mod 2^n
+  - a transition on b sets bit 0 (bitwise OR with 1)
+
+Starting from the number 1 (just the start state), these two operations can reach every
+possible n-bit number — so the subset construction produces a DFA state for every one of
+the 2^n - 1 non-empty subsets. And they're all DISTINGUISHABLE: a subset containing NFA
+state i accepts on exactly n-1-i more a's, so any two different subsets can be told apart
+by some string — meaning the resulting DFA is not just big, but minimal.
+    </div>
+    <p><strong>Why this matters as a technique:</strong> it's not enough to exhibit one bad
+    case — a real blowup proof needs an infinite <em>family</em> of NFAs with the blowup
+    provably present at every size, and needs to argue the resulting DFA is minimal (otherwise
+    the "blowup" might just be sloppy, avoidable construction).</p>
+  </div>
+
+  <div class="section">
+    <h2>Limits to expressive power (§1.9.2)</h2>
+    <p>A DFA is finite — it has nowhere to store an unbounded count. That single fact rules out
+    a whole class of languages:</p>
+    <div class="rule-box">
+<span class="label">Classic non-regular example</span>
+L = { aⁿbⁿ | n ≥ 0 }   <span class="cm">(any number of a's, followed by EXACTLY that many b's)</span>
+
+Not regular: reading left to right, by the time all the a's are read, a finite automaton
+would need to have "remembered" exactly how many there were, in order to check the b's
+against that count — but a finite number of states can only distinguish finitely many
+different counts, not aⁿ for unboundedly large n.
+    </div>
+    <p>Contrast this with <strong>bounded</strong>-depth parenthesis matching — matching
+    parens up to some fixed maximum nesting depth <span class="mono">n</span> IS regular,
+    recognisable by a DFA with exactly n+1 states (state i = "i unmatched opens so far"). The
+    moment nesting is unbounded, it's no longer regular for the same reason as aⁿbⁿ.</p>
+    <p>On the flip side, some very complex-looking languages ARE regular — e.g. the set of all
+    syntactically valid programs under a billion characters long is technically a (finite,
+    hence regular) language, even though describing it as a regex would be absurdly
+    impractical. Regularity is about a structural limit, not about "looking simple."</p>
+  </div>
+
+  <div class="section">
+    <h2>Closure properties (§1.9.3)</h2>
+    <p>Given regular languages, what operations on them are guaranteed to produce another
+    regular language?</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>Operation</th><th>Why it's closed</th></tr>
+      <tr><td>Union</td><td>Direct — <span class="mono">s|t</span> is a regex for L(s) ∪ L(t)</td></tr>
+      <tr><td>Concatenation</td><td>Direct — <span class="mono">st</span></td></tr>
+      <tr><td>Unbounded repetition (star)</td><td>Direct — <span class="mono">s*</span></td></tr>
+      <tr><td>Complement</td><td>Build a DFA for L with a <em>total</em> transition function (§1.7.2 style), then flip every accepting state to non-accepting and vice versa</td></tr>
+      <tr><td>Intersection</td><td>Via De Morgan's: L1 ∩ L2 = complement(complement(L1) ∪ complement(L2))</td></tr>
+      <tr><td>Set difference</td><td>L1 \ L2 = L1 ∩ complement(L2)</td></tr>
+      <tr><td>Prefix, suffix, subsequence, reversal</td><td>Each obtainable by a direct transformation of the DFA (details vary per operation)</td></tr>
+    </table>
+    <p><strong>Practical task these set up:</strong> given closure properties, argue formally
+    that a derived language is (or isn't) regular — or, given automata for L1 and L2, actually
+    construct the automaton for their complement/intersection/difference rather than
+    re-deriving a language description from scratch.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="lexers.html">← Lexers &amp; Lexer Generators</a>
+    <a href="lex-index.html">Back to Index →</a>
+  </div>
+
+</div>
+</body>
+</html>

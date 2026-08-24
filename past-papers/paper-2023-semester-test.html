@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2023 Semester Test — Full Worked Solutions</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Past Papers<small>COS341 · Worked Solutions</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="past-papers-index.html">Papers Index</a>
+      <a href="paper-2024-test1.html">2024 Test 1</a>
+      <a href="paper-2023-semester-test.html" class="active">2023 Semester Test</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker shared">Worked Solutions</span>
+  <h1 class="page-title">2023 Semester Test — Full Step-Through</h1>
+  <p class="subtitle">
+    Two students, Natasha and Vanessa, wrote different grammars for the same rough idea
+    (branching programs) — the whole point of Question A is that they aren't equally easy to
+    parse.
+  </p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+    <div class="rule-box">
+<span class="label">Natasha's CFG</span>
+1. PROG → INSTR ; SEQ
+2. SEQ  → PROG
+3. SEQ  → ε
+4. INSTR→ command
+5. INSTR→ BRANCH
+6. BRANCH→ if(bool) { PROG }
+7. BRANCH→ if(bool) { SEQ } else { PROG }
+    </div>
+    <div class="rule-box">
+<span class="label">Vanessa's CFG</span>
+1. PROG → INSTR ; PROG
+2. PROG → ε
+3. INSTR→ command
+4. INSTR→ BRANCH
+5. BRANCH→ if(bool) { PROG } ELSE
+6. ELSE  → else { PROG }
+7. ELSE  → ε
+    </div>
+  </div>
+
+  <div class="qbox">
+    <h3>A.1 <span class="pts">[3P]</span></h3>
+    <p class="prompt">Analyse by way of the Look-Ahead-Set method (and the additional rule
+    S→PROG$) whether Natasha's grammar is in LL1.</p>
+    <span class="ans-label">Nullable / FIRST / FOLLOW</span>
+    <p>PROG, INSTR, BRANCH are all non-nullable (every production starts with a terminal or a
+    non-nullable nonterminal). SEQ is nullable <em>only</em> via rule 3 — rule 2's
+    "SEQ→PROG" is not nullable, since PROG isn't.</p>
+    <table class="data">
+      <tr><th>Nonterminal</th><th>Nullable</th><th>FIRST</th><th>FOLLOW</th></tr>
+      <tr><td>PROG</td><td>no</td><td class="hl">{command, if}</td><td class="hl">{$, }}</td></tr>
+      <tr><td>SEQ</td><td>yes</td><td class="hl">{command, if}</td><td class="hl">{$, }}</td></tr>
+      <tr><td>INSTR</td><td>no</td><td class="hl">{command, if}</td><td class="hl">{;}</td></tr>
+      <tr><td>BRANCH</td><td>no</td><td class="hl">{if}</td><td class="hl">{;}</td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">FOLLOW(PROG) and FOLLOW(SEQ) are
+    mutually dependent (rule 1 puts FOLLOW(PROG)⊆FOLLOW(SEQ), rule 2 puts
+    FOLLOW(SEQ)⊆FOLLOW(PROG)) and converge to the same set {$, }} once you also fold in the
+    direct contributions from rules 6/7 (PROG followed by literal "}") and rule 7 (SEQ followed
+    by literal "}").</p>
+
+    <span class="ans-label">Look-Ahead Sets (only rule-pairs sharing an LHS)</span>
+    <table class="data" style="text-align:left;">
+      <tr><th>Rule</th><th>Look-Ahead-Set</th><th>Comments</th></tr>
+      <tr><td>2: SEQ→PROG</td><td class="hl">{command, if}</td><td>vs. rule 3: disjoint — fine</td></tr>
+      <tr><td>3: SEQ→ε</td><td class="hl">{$, }}</td><td>vs. rule 2: disjoint — fine</td></tr>
+      <tr><td>4: INSTR→command</td><td class="hl">{command}</td><td>vs. rule 5: disjoint — fine</td></tr>
+      <tr><td>5: INSTR→BRANCH</td><td class="hl">{if}</td><td>vs. rule 4: disjoint — fine</td></tr>
+      <tr><td>6: BRANCH→if(bool){PROG}</td><td class="conflict">{if}</td><td class="conflict">vs. rule 7: {if}∩{if}={if} — CONFLICT</td></tr>
+      <tr><td>7: BRANCH→if(bool){SEQ}else{PROG}</td><td class="conflict">{if}</td><td class="conflict">vs. rule 6: same conflict</td></tr>
+    </table>
+    <p><strong>Conclusion: Natasha's grammar is NOT in LL1.</strong> Rules 6 and 7 are
+    indistinguishable on one token of lookahead — both start with the identical prefix
+    "if(bool){...", so the parser can't tell whether an <span class="mono">else</span> is coming
+    until long after it would have needed to commit to a production. This is the classic
+    "dangling-structure" lookahead problem.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.2 <span class="pts">[7P]</span></h3>
+    <p class="prompt">Analyse by way of the Look-Ahead-Set method whether Vanessa's grammar is
+    in LL1.</p>
+    <span class="ans-label">Nullable / FIRST / FOLLOW</span>
+    <p>PROG is nullable (rule 2, independent of rule 1 which isn't nullable since INSTR isn't).
+    ELSE is nullable (rule 7). INSTR and BRANCH are not nullable.</p>
+    <table class="data">
+      <tr><th>Nonterminal</th><th>Nullable</th><th>FIRST</th><th>FOLLOW</th></tr>
+      <tr><td>PROG</td><td>yes</td><td class="hl">{command, if}</td><td class="hl">{$, }}</td></tr>
+      <tr><td>INSTR</td><td>no</td><td class="hl">{command, if}</td><td class="hl">{;}</td></tr>
+      <tr><td>BRANCH</td><td>no</td><td class="hl">{if}</td><td class="hl">{;}</td></tr>
+      <tr><td>ELSE</td><td>yes</td><td class="hl">{else}</td><td class="hl">{;}</td></tr>
+    </table>
+
+    <span class="ans-label">Look-Ahead Sets</span>
+    <table class="data" style="text-align:left;">
+      <tr><th>Rule</th><th>Look-Ahead-Set</th><th>Comments</th></tr>
+      <tr><td>1: PROG→INSTR;PROG</td><td class="hl">{command, if}</td><td>vs. rule 2: disjoint — fine</td></tr>
+      <tr><td>2: PROG→ε</td><td class="hl">{$, }}</td><td>vs. rule 1: disjoint — fine</td></tr>
+      <tr><td>3: INSTR→command</td><td class="hl">{command}</td><td>vs. rule 4: disjoint — fine</td></tr>
+      <tr><td>4: INSTR→BRANCH</td><td class="hl">{if}</td><td>vs. rule 3: disjoint — fine</td></tr>
+      <tr><td>6: ELSE→else{PROG}</td><td class="hl">{else}</td><td>vs. rule 7: disjoint — fine</td></tr>
+      <tr><td>7: ELSE→ε</td><td class="hl">{;}</td><td>vs. rule 6: disjoint — fine</td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">(BRANCH has only one production, so
+    there's no pair to check there.)</p>
+    <p><strong>Conclusion: Vanessa's grammar IS in LL1</strong> — every rule-pair sharing a
+    left-hand side has disjoint Look-Ahead Sets. This is exactly why the scenario matters:
+    factoring the optional <span class="mono">else</span> out into its own nonterminal
+    (<span class="mono">ELSE → else{PROG} | ε</span>) instead of writing two overlapping
+    <span class="mono">BRANCH</span> productions removes the conflict entirely — same rough
+    language, meaningfully easier to parse.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.3 <span class="pts">[1P]</span> &amp; A.4 <span class="pts">[1P]</span></h3>
+    <p class="prompt">Draw the complete concrete syntax tree of
+    <span class="mono">command ; if(bool) {} else { command ; } ;</span> w.r.t. Natasha's
+    grammar (A.3), then w.r.t. Vanessa's grammar (A.4).</p>
+
+    <span class="ans-label">A.3 — Natasha's grammar</span>
+    <div class="syntax-tree" role="img" aria-label="Natasha's grammar syntax tree">
+      <div class="tree-root"><span class="nt">PROG</span></div>
+      <div class="tree-child"><span class="nt">INSTR</span> → <span class="t">command</span></div>
+      <div class="tree-child"><span class="t">;</span></div>
+      <div class="tree-child"><span class="nt">SEQ</span></div>
+      <div class="tree-grandchild"><span class="nt">PROG</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">INSTR</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">BRANCH</span> <span class="cm">(rule 7)</span></div>
+      <div class="tree-greatgrandchild"><span class="t">if ( bool ) {</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">SEQ</span> → <span class="eps">ε</span></div>
+      <div class="tree-greatgrandchild"><span class="t">} else {</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">PROG</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">INSTR</span> → <span class="t">command</span></div>
+      <div class="tree-greatgrandchild"><span class="t">;</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">SEQ</span> → <span class="eps">ε</span></div>
+      <div class="tree-greatgrandchild"><span class="t">}</span></div>
+      <div class="tree-child"><span class="t">;</span></div>
+      <div class="tree-child"><span class="nt">SEQ</span> → <span class="eps">ε</span></div>
+    </div>
+
+    <span class="ans-label">A.4 — Vanessa's grammar</span>
+    <div class="syntax-tree" role="img" aria-label="Vanessa's grammar syntax tree">
+      <div class="tree-root"><span class="nt">PROG</span></div>
+      <div class="tree-child"><span class="nt">INSTR</span> → <span class="t">command</span></div>
+      <div class="tree-child"><span class="t">;</span></div>
+      <div class="tree-child"><span class="nt">PROG</span></div>
+      <div class="tree-grandchild"><span class="nt">INSTR</span></div>
+      <div class="tree-grandchild"><span class="nt">BRANCH</span> <span class="cm">(rule 5)</span></div>
+      <div class="tree-grandchild"><span class="t">if ( bool ) {</span></div>
+      <div class="tree-grandchild"><span class="nt">PROG</span> → <span class="eps">ε</span></div>
+      <div class="tree-grandchild"><span class="t">}</span></div>
+      <div class="tree-grandchild"><span class="nt">ELSE</span> <span class="cm">(rule 6)</span></div>
+      <div class="tree-grandchild"><span class="t">else {</span></div>
+      <div class="tree-grandchild"><span class="nt">PROG</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">INSTR</span> → <span class="t">command</span></div>
+      <div class="tree-greatgrandchild"><span class="t">;</span></div>
+      <div class="tree-greatgrandchild"><span class="nt">PROG</span> → <span class="eps">ε</span></div>
+      <div class="tree-grandchild"><span class="t">}</span></div>
+      <div class="tree-child"><span class="t">;</span></div>
+      <div class="tree-child"><span class="nt">PROG</span> → <span class="eps">ε</span></div>
+    </div>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">Both trees consume exactly the same 14
+    tokens (<span class="mono">command ; if ( bool ) { } else { command ; } ;</span>) — worth
+    checking token-by-token if you're practising this by hand, since it's easy to accidentally
+    drop or duplicate a brace.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>Question B <span class="pts">[7P]</span></h3>
+    <p class="prompt">Construct the Control-NFA (with ε-transitions) for Natasha's grammar, for
+    the purpose of building an SLR parser.</p>
+    <span class="ans-label">Answer</span>
+    <p>Augmenting with rule 0 (S'→PROG, the standard SLR starting production) and building one
+    item-chain per production:</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>Production</th><th>Item states (dot positions)</th></tr>
+      <tr><td>0: S'→PROG</td><td>A(•PROG) → B(PROG•, final/accept)</td></tr>
+      <tr><td>1: PROG→INSTR;SEQ</td><td>C(•INSTR;SEQ) → D(INSTR•;SEQ) → E(INSTR;•SEQ) → F(INSTR;SEQ•, final)</td></tr>
+      <tr><td>2: SEQ→PROG</td><td>G(•PROG) → H(PROG•, final)</td></tr>
+      <tr><td>3: SEQ→ε</td><td>I(•, final — zero-width)</td></tr>
+      <tr><td>4: INSTR→command</td><td>J(•command) → K(command•, final)</td></tr>
+      <tr><td>5: INSTR→BRANCH</td><td>L(•BRANCH) → M(BRANCH•, final)</td></tr>
+      <tr><td>6: BRANCH→if(bool){PROG}</td><td>N(•if...) → O → P → Q → R(•PROG) → T(PROG•, dot before "}") → U(final, after "}")</td></tr>
+      <tr><td>7: BRANCH→if(bool){SEQ}else{PROG}</td><td>V(•if...) → ... → (dot before SEQ) → ... → (dot before PROG after else{) → ... → final</td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">Rules 6 and 7 each expand into one
+    state per token consumed (if, (, bool, ), {, then the nonterminal, then } — and rule 7
+    additionally has else, {, PROG, }) — mechanical but long; the important content is the
+    ε-linkage below, which is identical in kind to A.5 on the 2024 paper.</p>
+
+    <span class="ans-label">ε-transitions (closure links)</span>
+    <div class="rule-box">
+A --ε--> C          <span class="cm">(A's dot before PROG ⟹ enter PROG's only production)</span>
+E --ε--> G          <span class="cm">(E's dot before SEQ ⟹ enter SEQ's productions...)</span>
+E --ε--> I          <span class="cm">(...both rule 2 and rule 3)</span>
+C --ε--> J          <span class="cm">(C's dot before INSTR ⟹ enter INSTR's productions...)</span>
+C --ε--> L          <span class="cm">(...both rule 4 and rule 5)</span>
+L --ε--> N          <span class="cm">(L's dot before BRANCH ⟹ enter BRANCH's productions...)</span>
+L --ε--> V          <span class="cm">(...both rule 6 and rule 7)</span>
+R --ε--> C          <span class="cm">(rule 6's dot before PROG ⟹ re-enter PROG's production)</span>
+   (and similarly: rule 7's dot-before-SEQ links to G/I, and its dot-before-PROG links to C)
+    </div>
+    <p><strong>Key structural point to notice:</strong> because PROG, SEQ, INSTR, and BRANCH are
+    mutually recursive (PROG uses SEQ which uses PROG; INSTR uses BRANCH which uses PROG again
+    via both if-rules), the ε-closure of the very first item (A) pulls in <em>almost every other
+    item's start state</em> transitively — this is normal and exactly mirrors the mutual
+    recursion already visible in the grammar itself.</p>
+  </div>
+
+  <hr style="margin:50px 0; border:none; border-top:1px solid var(--line);">
+
+  <p class="subtitle">Vanessa's separate grammar for <strong>Looping-Programs</strong> (used for
+  Questions C and D):</p>
+  <div class="rule-box">
+1. PROG → INSTR ; PROG
+2. PROG → ε
+3. INSTR → variable := EXPR
+4. INSTR → while (BOOL) { PROG }
+5. EXPR → variable | number | true | false
+6. EXPR → numOp( EXPR , EXPR )
+7. EXPR → boolOp( EXPR , EXPR )
+8. BOOL → EXPR
+  </div>
+
+  <div class="qbox">
+    <h3>Question C <span class="pts">[8P]</span></h3>
+    <p class="prompt">Attach one suitable Type Analysis rule to each of the 8 syntactic rules,
+    in functional style (as in the textbook), including error messages for semantic
+    inconsistency.</p>
+    <span class="ans-label">Answer — following the textbook's Check<sub>Exp</sub> style (Fig. 5.2)</span>
+    <p>Two families of functions: <span class="mono">Check_Prog</span> /
+    <span class="mono">Check_Instr</span> for statements (return nothing, just check — matching
+    the textbook's <span class="mono">Check_Fun</span> convention), and
+    <span class="mono">Check_Exp</span> / <span class="mono">Check_Bool</span> for expressions
+    (return a Type: <span class="mono">int</span> or <span class="mono">bool</span>).</p>
+
+    <div class="rule-box">
+<span class="label">Rule 1 — PROG → INSTR ; PROG</span>
+Check_Prog(INSTR ; PROG, vtable) =
+  Check_Instr(INSTR, vtable) ;
+  Check_Prog(PROG, vtable)
+
+<span class="label">Rule 2 — PROG → ε</span>
+Check_Prog(ε, vtable) = <span class="cm">-- nothing to check</span>
+
+<span class="label">Rule 3 — INSTR → variable := EXPR</span>
+Check_Instr(variable := EXPR, vtable) =
+  t1 = lookup(vtable, getname(variable))
+  t2 = Check_Exp(EXPR, vtable)
+  if t1 = unbound
+    then error("undeclared variable " ++ getname(variable))
+  else if t1 ≠ t2
+    then error("type mismatch: cannot assign " ++ t2 ++ " to " ++ getname(variable) ++ " of type " ++ t1)
+  else <span class="cm">-- ok</span>
+
+<span class="label">Rule 4 — INSTR → while (BOOL) { PROG }</span>
+Check_Instr(while (BOOL) { PROG }, vtable) =
+  t = Check_Bool(BOOL, vtable)
+  if t ≠ bool then error("while-condition must be of type bool, got " ++ t)
+  Check_Prog(PROG, vtable)
+
+<span class="label">Rule 5 — EXPR → variable | number | true | false</span>
+Check_Exp(variable, vtable) =
+  t = lookup(vtable, getname(variable))
+  if t = unbound then error("undeclared variable " ++ getname(variable)); int
+  else t
+Check_Exp(number, vtable) = int
+Check_Exp(true, vtable)   = bool
+Check_Exp(false, vtable)  = bool
+
+<span class="label">Rule 6 — EXPR → numOp( EXPR₁ , EXPR₂ )</span>
+Check_Exp(numOp(EXPR1,EXPR2), vtable) =
+  t1 = Check_Exp(EXPR1, vtable)
+  t2 = Check_Exp(EXPR2, vtable)
+  if t1 = int and t2 = int
+    then int
+    else error("numOp needs two int operands, got " ++ t1 ++ " and " ++ t2); int
+
+<span class="label">Rule 7 — EXPR → boolOp( EXPR₁ , EXPR₂ )</span>
+Check_Exp(boolOp(EXPR1,EXPR2), vtable) =
+  t1 = Check_Exp(EXPR1, vtable)
+  t2 = Check_Exp(EXPR2, vtable)
+  if t1 = bool and t2 = bool
+    then bool
+    else error("boolOp needs two bool operands, got " ++ t1 ++ " and " ++ t2); bool
+
+<span class="label">Rule 8 — BOOL → EXPR</span>
+Check_Bool(EXPR, vtable) =
+  t = Check_Exp(EXPR, vtable)
+  if t ≠ bool then error("condition must be of type bool, got " ++ t)
+  bool
+    </div>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">Following the textbook's own
+    error-recovery convention exactly: <span class="mono">error()</span> prints a message and
+    returns nothing, after which the function still returns <em>some</em> best-guess type so
+    checking can continue and find further errors in the rest of the program, rather than
+    stopping at the first one.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>Question D <span class="pts">[8P]</span></h3>
+    <p class="prompt">Attach one suitable Code Generator rule to each of the 8 syntactic rules,
+    functional style. Rule 2 may assume a NOP instruction. Rules 1–4 define
+    <span class="mono">TransStat</span> (and must call <span class="mono">TransExp</span> where
+    needed); rules 5–8 define <span class="mono">TransExp</span>.</p>
+    <span class="ans-label">Answer — following the textbook's Trans<sub>Stat</sub> style (Fig. 6.5)</span>
+    <div class="rule-box">
+<span class="label">Rule 1 — PROG → INSTR ; PROG</span>
+TransStat(INSTR ; PROG, vtable, ftable) =
+  code1 = TransStat(INSTR, vtable, ftable)
+  code2 = TransStat(PROG, vtable, ftable)
+  code1 ++ code2
+
+<span class="label">Rule 2 — PROG → ε</span>
+TransStat(ε, vtable, ftable) = [NOP]
+
+<span class="label">Rule 3 — INSTR → variable := EXPR</span>
+TransStat(variable := EXPR, vtable, ftable) =
+  place = newvar()
+  x = lookup(vtable, getname(variable))
+  TransExp(EXPR, vtable, ftable, place) ++ [x := place]
+
+<span class="label">Rule 4 — INSTR → while (BOOL) { PROG }</span>
+TransStat(while (BOOL) { PROG }, vtable, ftable) =
+  label1 = newlabel()      <span class="cm">-- loop test</span>
+  label2 = newlabel()      <span class="cm">-- loop body</span>
+  label3 = newlabel()      <span class="cm">-- exit</span>
+  t     = newvar()
+  code1 = TransExp(BOOL, vtable, ftable, t)
+  code2 = TransStat(PROG, vtable, ftable)
+  [LABEL label1] ++ code1 ++ [IF t THEN label2 ELSE label3]
+    ++ [LABEL label2] ++ code2 ++ [GOTO label1, LABEL label3]
+
+<span class="label">Rule 5 — EXPR → variable | number | true | false</span>
+TransExp(variable, vtable, ftable, place) =
+  x = lookup(vtable, getname(variable))
+  [place := x]
+TransExp(number, vtable, ftable, place) = [place := getvalue(number)]
+TransExp(true, vtable, ftable, place)   = [place := true]
+TransExp(false, vtable, ftable, place)  = [place := false]
+
+<span class="label">Rule 6 — EXPR → numOp( EXPR₁ , EXPR₂ )</span>
+TransExp(numOp(EXPR1,EXPR2), vtable, ftable, place) =
+  t1 = newvar()
+  t2 = newvar()
+  code1 = TransExp(EXPR1, vtable, ftable, t1)
+  code2 = TransExp(EXPR2, vtable, ftable, t2)
+  op = transop(getopname(numOp))
+  code1 ++ code2 ++ [place := t1 op t2]
+
+<span class="label">Rule 7 — EXPR → boolOp( EXPR₁ , EXPR₂ )</span>
+TransExp(boolOp(EXPR1,EXPR2), vtable, ftable, place) =
+  t1 = newvar()
+  t2 = newvar()
+  code1 = TransExp(EXPR1, vtable, ftable, t1)
+  code2 = TransExp(EXPR2, vtable, ftable, t2)
+  op = transop(getopname(boolOp))
+  code1 ++ code2 ++ [place := t1 op t2]
+
+<span class="label">Rule 8 — BOOL → EXPR</span>
+TransExp(EXPR, vtable, ftable, place) = TransExp(EXPR, vtable, ftable, place)
+   <span class="cm">-- BOOL is a pure wrapper around EXPR, so its code-gen is a direct pass-through</span>
+    </div>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">Rule 4's while-loop directly mirrors
+    the textbook's own <span class="mono">while Cond do Stat1</span> case in Fig. 6.5 — three
+    labels, condition tested at the top, unconditional jump back after the body. The only
+    adaptation needed is that this grammar's BOOL wraps a plain boolean-valued EXPR rather than
+    an explicit <span class="mono">Exp1 relop Exp2</span> comparison, so the conditional jump is
+    emitted directly off the evaluated boolean temp <span class="mono">t</span>
+    (<span class="mono">IF t THEN ... ELSE ...</span>) instead of going through a separate
+    Trans_Cond auxiliary — consistent with the task's instruction to use only TransStat and
+    TransExp.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="paper-2024-test1.html">← 2024 Test 1</a>
+    <a href="past-papers-index.html">Back to Papers Index →</a>
+  </div>
+
+</div>
+</body>
+</html>

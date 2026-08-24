@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLR Parsing — Full Pipeline</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="ll1.html">LL(1)</a>
+      <a href="slr.html" class="active">SLR</a>
+      <a href="compare.html">Compare</a>
+      <a href="ll1-walkthrough.html">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html">SLR Walkthrough</a>
+      <a href="ll0.html">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker slr">Bottom-Up · Shift-Reduce Parsing</span>
+  <h1 class="page-title">SLR Parsing</h1>
+  <p class="subtitle">
+    "Simple LR": reads left to right and builds a <strong>rightmost</strong> derivation, but
+    in reverse. Instead of predicting a production before reading its symbols, SLR reads
+    symbols onto a stack (<em>shift</em>) until it recognises a complete right-hand side sitting
+    on top, then collapses it back to the nonterminal (<em>reduce</em>). The whole construction
+    exists to decide, from a DFA state and the next symbol, whether to shift or reduce — and if
+    reduce, by which production.
+  </p>
+
+  <div class="callout warn">
+    <span class="label">Two equivalent construction routes</span>
+    The textbook builds the automaton by treating grammar rules like regular expressions
+    (NFA-per-production, ε-transitions for nonterminal calls, then subset-construct a DFA).
+    The lecture route (Aho/Sethi/Ullman) builds the same automaton directly as sets of
+    <strong>items</strong> via <span class="mono">CLOSURE</span> and <span
+    class="mono">GOTO</span>. Both are shown below, side by side — they produce the identical
+    states, just reached differently, and HW-style questions may ask for either one by name.
+  </div>
+
+  <div class="callout">
+    <strong>Want to see the table actually running?</strong>
+    The <a href="slr-walkthrough.html">interactive walkthrough</a> steps through the full
+    shift-reduce parse of a real string against the finished table below, one action per
+    click — the same string the <a href="ll1-walkthrough.html">LL(1) walkthrough</a> uses, so
+    you can compare the two step-by-step.
+  </div>
+
+  <div class="section">
+    <h2>The construction, step by step</h2>
+
+    <div class="step slr">
+      <h3><span class="step-num">A</span>Augment the grammar</h3>
+      <p>Add a new start production <span class="mono">S' → S</span>. This gives the automaton
+      a single unambiguous starting item and a way to recognise "input fully reduced to the
+      start symbol" as the accept condition.</p>
+    </div>
+
+    <div class="step slr">
+      <h3><span class="step-num">B</span>Build the LR(0) automaton</h3>
+      <p><strong>Route 1 — textbook (NFA → DFA):</strong> build a small NFA per production
+      exactly as you would from a regular expression, treating both terminals and nonterminals
+      as alphabet symbols. Whenever a transition would need to consume a nonterminal N, add ε
+      transitions into the start states of every production for N — this is what lets the
+      automaton "call into" N before it can transition past it. Combine everything into one NFA
+      with the augmented production's start state as the sole initial state, then apply the
+      standard subset construction to get a DFA.</p>
+
+      <p><strong>Route 2 — items via CLOSURE/GOTO (Aho/Sethi/Ullman):</strong> represent each
+      partially-recognised production as an <em>item</em> — a production with a dot marking how
+      far parsing has progressed through its right-hand side, e.g. <span class="mono">T → a •
+      T c</span>.</p>
+
+      <div class="rule-box">
+<span class="label">CLOSURE(I)</span>
+CLOSURE(I):
+  repeat
+    for each item [N → α • M β] in I, and each production M → γ:
+      add item [M → • γ] to I   (if not already present)
+  until no item can be added
+  return I
+
+<span class="cm">// intuition: if the dot sits just before a nonterminal M, you might be about
+// to descend into any of M's productions — so add all of them, dot at the start</span>
+      </div>
+
+      <div class="rule-box">
+<span class="label">GOTO(I, X)</span>
+GOTO(I, X):
+  J := { [N → α X • β]  |  [N → α • X β] ∈ I }
+  return CLOSURE(J)
+
+<span class="cm">// intuition: advance the dot past symbol X in every item of I that allows it,
+// then close the result — this is one automaton transition on X</span>
+      </div>
+
+      <p>The automaton's states are built by starting from
+      <span class="mono">CLOSURE({S' → • S})</span> and repeatedly applying GOTO for every
+      symbol until no new state appears — identical in spirit to the subset-construction
+      work-list in Route 1, just operating on items instead of NFA-state sets.</p>
+    </div>
+
+    <div class="step slr">
+      <h3><span class="step-num">C</span>Read off shift and goto actions</h3>
+      <p>Every automaton transition becomes a table entry. A transition on a
+      <strong>terminal</strong> becomes a <span class="mono">shift n</span> action (push the
+      symbol and state n, read next input). A transition on a <strong>nonterminal</strong>
+      becomes a <span class="mono">go n</span> action, used right after a reduction to tell the
+      automaton which state to resume in.</p>
+    </div>
+
+    <div class="step slr">
+      <h3><span class="step-num">D</span>Compute FOLLOW for every nonterminal</h3>
+      <p>Exactly the same FOLLOW computation as LL(1) (§2.9) — nothing new here. To get
+      <span class="mono">$</span> into the right FOLLOW sets, add one more bookkeeping
+      production <span class="mono">S'' → S' $</span> purely for this calculation.</p>
+    </div>
+
+    <div class="step slr">
+      <h3><span class="step-num">E</span>Add reduce and accept actions</h3>
+      <div class="rule-box">
+<span class="label">Reduce-action rule</span>
+If a state s contains a completed item for production p: N → α  (dot at the far right),
+add "reduce p" as the action in s for every symbol in FOLLOW(N).
+
+Reducing by the augmented production (p = 0) on symbol $ is written "accept" instead.
+      </div>
+      <p>This is the step where LL(1)'s FOLLOW sets and SLR's automaton states meet — it's
+      also exactly where "S" for Simple comes from: a fancier LR method would use a
+      lookahead computed per-state instead of the grammar-wide FOLLOW set, which is more
+      precise but more work.</p>
+    </div>
+
+    <div class="step slr">
+      <h3><span class="step-num">F</span>Detect conflicts</h3>
+      <p>Two distinct failure shapes, and either (or both) can land in the same table cell:</p>
+      <ul class="plain">
+        <li><strong>Shift-reduce conflict</strong> — a cell already has a shift action from
+        Step C, and Step E also wants to add a reduce action there.</li>
+        <li><strong>Reduce-reduce conflict</strong> — a state's item set contains completed
+        items for two <em>different</em> productions whose FOLLOW sets overlap on some
+        symbol.</li>
+      </ul>
+    </div>
+
+    <div class="step slr">
+      <h3><span class="step-num">G</span>Resolve conflicts</h3>
+      <p>Unlike LL(1), left-recursion is <em>not</em> a problem for SLR — so that fix is off
+      the table by construction. What does help: switching a production between left- and
+      right-recursive form can sometimes relocate a conflict away; splitting a production into
+      per-case alternatives can postpone a reduction until more input disambiguates it; and
+      §2.15 covers using external operator-precedence declarations to delete one of two
+      conflicting actions directly in the table, without touching the grammar at all — this is
+      the SLR-specific escape hatch that LL(1) doesn't have.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Worked in full: Grammar 2.9</h2>
+    <p>Augmented: <span class="mono">0: T'→T</span>, <span class="mono">1: T→R</span>,
+    <span class="mono">2: T→aTc</span>, <span class="mono">3: R→ε</span>,
+    <span class="mono">4: R→bR</span>. Building this by CLOSURE/GOTO:</p>
+
+    <table class="data">
+      <tr><th>State</th><th>Item set (core)</th><th>Reachable via</th></tr>
+      <tr><td>0</td><td class="hl2">T'→•T, T→•R, T→•aTc, R→•, R→•bR</td><td>start</td></tr>
+      <tr><td>1</td><td class="hl2">T'→T•</td><td>GOTO(0,T)</td></tr>
+      <tr><td>2</td><td class="hl2">T→R•</td><td>GOTO(0,R) / GOTO(3,R)</td></tr>
+      <tr><td>3</td><td class="hl2">T→a•Tc, T→•R, T→•aTc, R→•, R→•bR</td><td>GOTO(0,a) / GOTO(3,a)</td></tr>
+      <tr><td>4</td><td class="hl2">R→b•R, R→•bR, R→•</td><td>GOTO(0,b) / GOTO(3,b) / GOTO(4,b)</td></tr>
+      <tr><td>5</td><td class="hl2">T→aT•c</td><td>GOTO(3,T)</td></tr>
+      <tr><td>6</td><td class="hl2">R→bR•</td><td>GOTO(4,R)</td></tr>
+      <tr><td>7</td><td class="hl2">T→aTc•</td><td>GOTO(5,c)</td></tr>
+    </table>
+
+    <div class="diagram">
+      <svg viewBox="0 0 760 540" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#c1780f"/>
+          </marker>
+        </defs>
+        <style>
+          .st{fill:#fff; stroke:#c1780f; stroke-width:2;}
+          .stf{fill:#faf0dd; stroke:#c1780f; stroke-width:2;}
+          .lbl{font-family:'IBM Plex Mono',monospace; font-size:13px; fill:#161b22; text-anchor:middle;}
+          .num{font-family:'Fraunces',serif; font-weight:700; font-size:16px; fill:#161b22; text-anchor:middle;}
+          .edge{fill:none; stroke:#8a8f99; stroke-width:1.6; marker-end:url(#arrow);}
+        </style>
+
+        <!-- edges first (behind nodes) -->
+        <path class="edge" d="M95,270 L245,110" />
+        <path class="edge" d="M95,255 L245,235" />
+        <path class="edge" d="M90,285 L245,355" />
+        <path class="edge" d="M85,300 L245,460" />
+        <path class="edge" d="M310,370 L455,355" />
+        <path class="edge" d="M300,335 C 340,300 340,260 305,240" />
+        <path class="edge" d="M300,395 C 330,420 330,440 305,455" />
+        <path class="edge" d="M280,375 C 250,400 250,420 280,445" />
+        <path class="edge" d="M310,445 L455,455" />
+        <path class="edge" d="M300,480 C 330,510 270,530 300,480" />
+        <path class="edge" d="M525,340 L640,340" />
+
+        <!-- state 0 -->
+        <circle class="stf" cx="70" cy="260" r="30"/>
+        <text class="num" x="70" y="266">0</text>
+        <!-- state1 -->
+        <circle class="stf" cx="280" cy="90" r="30"/>
+        <text class="num" x="280" y="96">1</text>
+        <text class="lbl" x="280" y="52">accept</text>
+        <!-- state2 -->
+        <circle class="stf" cx="280" cy="220" r="30"/>
+        <text class="num" x="280" y="226">2</text>
+        <text class="lbl" x="280" y="184">r1</text>
+        <!-- state3 -->
+        <circle class="stf" cx="280" cy="340" r="30"/>
+        <text class="num" x="280" y="346">3</text>
+        <!-- state4 -->
+        <circle class="stf" cx="280" cy="460" r="30"/>
+        <text class="num" x="280" y="466">4</text>
+        <!-- state5 -->
+        <circle class="st" cx="480" cy="340" r="30"/>
+        <text class="num" x="480" y="346">5</text>
+        <!-- state6 -->
+        <circle class="stf" cx="480" cy="460" r="30"/>
+        <text class="num" x="480" y="466">6</text>
+        <text class="lbl" x="480" y="424">r4</text>
+        <!-- state7 -->
+        <circle class="stf" cx="670" cy="340" r="30"/>
+        <text class="num" x="670" y="346">7</text>
+        <text class="lbl" x="670" y="304">r2</text>
+
+        <!-- edge labels -->
+        <text class="lbl" x="160" y="150">T</text>
+        <text class="lbl" x="170" y="245">R</text>
+        <text class="lbl" x="150" y="330">a</text>
+        <text class="lbl" x="145" y="405">b</text>
+        <text class="lbl" x="390" y="360">T</text>
+        <text class="lbl" x="360" y="280">R</text>
+        <text class="lbl" x="365" y="420">b</text>
+        <text class="lbl" x="240" y="410">a (self)</text>
+        <text class="lbl" x="390" y="480">R</text>
+        <text class="lbl" x="330" y="530">b (self)</text>
+        <text class="lbl" x="580" y="325">c</text>
+      </svg>
+      <figcaption>The full GOTO automaton for Grammar 2.9. Shaded states contain at least one
+      completed item (a reduce or accept action); state 5 is the only pure "still shifting"
+      state. This is identical in structure to Fig. 2.32 in the textbook — same grammar, same
+      states, arrived at via items/CLOSURE/GOTO instead of NFA subset construction.</figcaption>
+    </div>
+
+    <p><strong>FOLLOW sets</strong> (identical computation to the LL(1) page):
+    FOLLOW(T) = {c, $}, FOLLOW(R) = {c, $}.</p>
+
+    <p><strong>Resulting SLR table</strong> — indexed by <em>state</em>, not nonterminal:</p>
+    <table class="data">
+      <tr><th>State</th><th>a</th><th>b</th><th>c</th><th>$</th><th>T</th><th>R</th></tr>
+      <tr><td>0</td><td class="hl2">s3</td><td class="hl2">s4</td><td class="hl2">r3</td><td class="hl2">r3</td><td class="hl2">go 1</td><td class="hl2">go 2</td></tr>
+      <tr><td>1</td><td></td><td></td><td></td><td class="hl2">accept</td><td></td><td></td></tr>
+      <tr><td>2</td><td></td><td></td><td class="hl2">r1</td><td class="hl2">r1</td><td></td><td></td></tr>
+      <tr><td>3</td><td class="hl2">s3</td><td class="hl2">s4</td><td class="hl2">r3</td><td class="hl2">r3</td><td class="hl2">go 5</td><td class="hl2">go 2</td></tr>
+      <tr><td>4</td><td></td><td class="hl2">s4</td><td class="hl2">r3</td><td class="hl2">r3</td><td></td><td class="hl2">go 6</td></tr>
+      <tr><td>5</td><td></td><td></td><td class="hl2">s7</td><td></td><td></td><td></td></tr>
+      <tr><td>6</td><td></td><td></td><td class="hl2">r4</td><td class="hl2">r4</td><td></td><td></td></tr>
+      <tr><td>7</td><td></td><td></td><td class="hl2">r2</td><td class="hl2">r2</td><td></td><td></td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">No cell needs two actions — this
+    grammar is SLR with zero conflicts, which is unsurprising since it's also LL(1). The
+    interesting cases are grammars that are SLR but <em>not</em> LL(1), e.g. anything
+    left-recursive.</p>
+  </div>
+
+  <div class="section">
+    <h2>Running the parser: shift-reduce trace</h2>
+    <p>The stack interleaves grammar symbols and states, current state always on top. At each
+    step, look up (top-of-stack state, next input symbol):</p>
+    <pre class="code">stack := [0]; read(input)
+<span class="kw">loop</span>:
+  <span class="kw">case</span> table[top(stack), input] <span class="kw">of</span>
+    shift s:   push(input, stack); push(s, stack); read(input)
+    reduce p:  n  := left-hand side of production p
+               r  := number of symbols on the right-hand side of p
+               pop 2r elements from the stack
+               push(n, stack); push(s, stack)   <span class="cm">where table[top(stack), n] = go s</span>
+    accept:    <span class="kw">terminate</span> with success
+    error:     reportError()</pre>
+  </div>
+
+  <div class="footer-nav">
+    <a href="ll1.html">← LL(1) Parsing</a>
+    <a href="compare.html">Next: Side-by-Side Comparison →</a>
+  </div>
+
+</div>
+</body>
+</html>

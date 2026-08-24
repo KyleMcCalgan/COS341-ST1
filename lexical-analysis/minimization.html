@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DFA Minimization</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html" class="active">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">Minimization</span>
+  <h1 class="page-title">DFA Minimization</h1>
+  <p class="subtitle">
+    The subset construction can leave behind redundant states — different sets of NFA states
+    that nonetheless behave identically from here on. Minimization finds and collapses these,
+    and (remarkably) every regular language has one <strong>unique</strong> minimal DFA, which
+    makes minimized DFAs a clean way to test whether two descriptions denote the same language.
+  </p>
+
+  <div class="callout">
+    <strong>Want to split the groups yourself, one inconsistency at a time?</strong>
+    The <a href="minimization-walkthrough.html">interactive walkthrough</a> runs the exact
+    partition-refinement algorithm below on this page's worked example.
+  </div>
+
+  <div class="section">
+    <h2>When are two states equivalent?</h2>
+    <p>Not just "do their immediate transitions look the same" — two states can be equivalent
+    even if their transitions go to <em>different-looking</em> states, as long as those target
+    states are themselves equivalent. So minimization works by assuming everything is
+    equivalent, then proving states apart only when it can:</p>
+    <ul class="plain">
+      <li>An accepting state is never equivalent to a non-accepting one.</li>
+      <li>If states p and q both have a transition on symbol c, but those transitions lead to
+      states already proven <em>different</em>, then p and q are different too — and this also
+      applies if only one of p, q even has a defined transition on c.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>Algorithm 1.4 — partition refinement</h2>
+    <div class="rule-box">
+<span class="label">Algorithm 1.4</span>
+1. Start with two groups: F (all accepting states) and S\F (all non-accepting states).
+   Both unmarked.
+
+2. Pick any unmarked group G. Check consistency: for every pair of states in G, and every
+   symbol c, do their c-transitions land in the same group (or are both undefined)?
+   - If G is consistent: mark it.
+   - If not: split G into maximal consistent subgroups, replace G with them, and
+     unmark every group again (a split can invalidate an earlier "consistent" verdict).
+
+3. Repeat step 2 until no unmarked group remains. The final groups are the states of the
+   minimal DFA.
+
+<span class="cm">Optimisation: a singleton group can never need splitting further, so skip it
+in step 2 — stop once every unmarked group is a singleton.</span>
+    </div>
+    <p>The starting state of the minimal DFA is whichever group contains the original start
+    state; any group made entirely of accepting states is accepting in the minimal DFA.</p>
+  </div>
+
+  <div class="section">
+    <h2>Worked in full: minimizing the (a|b)*ac DFA</h2>
+    <p>Picking up the 4-state DFA from the <a href="dfa-subset.html">subset construction
+    page</a>:</p>
+    <table class="data">
+      <tr><th>move</th><th>a</th><th>b</th><th>c</th></tr>
+      <tr><td>s0'</td><td>s1'</td><td>s2'</td><td>—</td></tr>
+      <tr><td>s1'</td><td>s1'</td><td>s2'</td><td>s3'</td></tr>
+      <tr><td>s2'</td><td>s1'</td><td>s2'</td><td>—</td></tr>
+      <tr><td>s3'</td><td>—</td><td>—</td><td>—</td></tr>
+    </table>
+
+    <div class="rule-box">
+<span class="label">Step 1 — initial split</span>
+F  = {s3'}                     <span class="cm">(accepting)</span>
+S\F = {s0', s1', s2'}          <span class="cm">(non-accepting)</span>
+    </div>
+
+    <div class="rule-box">
+<span class="label">Step 2 — check {s3'}</span>
+Singleton — automatically consistent. Mark it.
+    </div>
+
+    <div class="rule-box">
+<span class="label">Step 3 — check {s0', s1', s2'}</span>
+Transition table for this group:
+              a       b       c
+  s0'         s1'     s2'     —
+  s1'         s1'     s2'     s3'
+  s2'         s1'     s2'     —
+
+On c: s0' and s2' both have NO transition (consistent with each other), but s1' transitions
+to s3' — which is in a DIFFERENT group. So this group is INCONSISTENT.
+
+Split into maximal consistent subgroups:
+  {s0', s2'}   — both: a→s1', b→s2', c→undefined  (identical pattern)
+  {s1'}        — the odd one out, because of its c-transition
+
+Result: three groups now — {s3'}, {s0', s2'}, {s1'}. Unmark everything (including {s3'}).
+    </div>
+
+    <div class="rule-box">
+<span class="label">Steps 4–5 — re-check everything</span>
+{s3'}: singleton, consistent, mark.
+{s1'}: singleton, consistent, mark.
+{s0', s2'}: both states have IDENTICAL transitions (a→s1'-group, b→{s0',s2'}-group itself,
+c→undefined) — consistent. Mark.
+
+No unmarked non-singleton groups remain. Done.
+    </div>
+
+    <p><strong>Result: 3 groups → 3-state minimal DFA</strong>, exactly matching what the
+    textbook notes by inspection: s0' and s2' "are equivalent: neither are accepting and they
+    have identical transitions."</p>
+
+    <div class="diagram">
+      <svg viewBox="0 -25 520 265" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrM" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L8,3 z" fill="#8a8f99"/>
+          </marker>
+        </defs>
+        <path class="edge" d="M10,140 L45,140" marker-end="url(#arrM)"/>
+
+        <path class="edge" d="M100,120 L200,90" marker-end="url(#arrM)"/>
+        <path class="edge" d="M75,168 C 60,210 100,225 110,170" marker-end="url(#arrM)"/>
+        <path class="edge" d="M222,50 C 202,-3 272,-3 252,50" marker-end="url(#arrM)"/>
+        <path class="edge" d="M255,95 L370,135" marker-end="url(#arrM)"/>
+
+        <circle class="state" cx="70" cy="140" r="30"/>
+        <text class="statelbl" x="70" y="146">M</text>
+
+        <circle class="state" cx="235" cy="75" r="28"/>
+        <text class="statelbl" x="235" y="81">s1'</text>
+
+        <circle class="state accept" cx="410" cy="140" r="28"/>
+        <circle cx="410" cy="140" r="22" fill="none" stroke="#3457a6" stroke-width="2"/>
+        <text class="statelbl" x="410" y="146">s3'</text>
+
+        <text class="edgelbl" x="150" y="90">a</text>
+        <text class="edgelbl" x="55" y="210">b (self)</text>
+        <text class="edgelbl" x="260" y="25">a (self)</text>
+        <text class="edgelbl" x="320" y="95">c</text>
+      </svg>
+      <figcaption>Minimal DFA: M = {s0', s2'} merged, plus s1' and s3' unchanged. Three states,
+      down from four — and this is provably the smallest DFA for this language.</figcaption>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Dead states — the trap (§1.7.2)</h2>
+    <p>Algorithm 1.4 quietly assumes either every state has a transition on every symbol, or
+    there are no <strong>dead states</strong> (states from which no accepting state is
+    reachable at all). If both assumptions fail, the algorithm can under-minimize.</p>
+    <p>Why: a transition to a dead state and an undefined transition both mean "this path can
+    never accept" — they should be treated identically. But the consistency check in step 2
+    treats them differently (one is a transition to a specific state, the other is "no
+    transition" at all), so it can split a group that didn't actually need splitting.</p>
+    <div class="callout warn">
+      <span class="label">Two fixes</span>
+      <strong>(1)</strong> Remove dead states first, via a simple reachability analysis (any
+      state that can't reach an accepting state gets deleted, along with transitions into it).
+      This is always safe for DFAs built from regular expressions by the standard construction,
+      since that process never introduces dead states in the first place.<br><br>
+      <strong>(2)</strong> Do the opposite — make the transition function <em>total</em> by
+      adding one explicit dead state that every undefined transition now points to (and which
+      loops to itself on every symbol). Minimize normally, then remove the group containing
+      that dead state from the result.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Why this matters beyond just "smaller automaton"</h2>
+    <p>Every regular language has exactly one minimal DFA (up to renaming states) — which gives
+    a clean equivalence test: to check whether two regexes, NFAs, or DFAs describe the
+    <em>same</em> language, minimize both and compare the results directly.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="dfa-subset.html">← NFA → DFA</a>
+    <a href="lexers.html">Next: Lexers & Lexer Generators →</a>
+  </div>
+
+</div>
+</body>
+</html>

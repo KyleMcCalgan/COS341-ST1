@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minimization Walkthrough</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html" class="active">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">Interactive Walkthrough</span>
+  <h1 class="page-title">Splitting groups until they stabilise</h1>
+  <p class="subtitle">
+    Minimizing the 4-state DFA from the <a href="dfa-subset.html">subset construction
+    page</a>. Watch the groups: every split means "this group's states don't actually behave
+    the same," every mark means "verified — no more splitting needed here."
+  </p>
+
+  <div class="callout">
+    <span class="mono">move</span> table for reference — a: s0'→s1', s1'→s1', s2'→s1' &nbsp;|&nbsp;
+    b: s0'→s2', s1'→s2', s2'→s2' &nbsp;|&nbsp; c: s0'→—, s1'→s3', s2'→—
+  </div>
+
+  <div class="section">
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="m-title">—</p>
+        <span class="stepper-progress" id="m-progress">—</span>
+      </div>
+
+      <div id="m-groups" style="display:flex; gap:16px; flex-wrap:wrap; margin:18px 0;"></div>
+
+      <div class="explain-box lex" id="m-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to make the initial accepting / non-accepting split.
+      </div>
+
+      <div class="dots" id="m-dots"></div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="m-prev">← Back</button>
+        <button class="step-btn primary lex" id="m-next">Next →</button>
+        <button class="step-btn reset" id="m-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-nav">
+    <a href="subset-construction-walkthrough.html">← Subset Construction Walkthrough</a>
+    <a href="lexing-walkthrough.html">Next: Longest-Match Lexing Walkthrough →</a>
+  </div>
+
+</div>
+
+<style>
+.mgroup{
+  border:2px solid var(--line); border-radius:10px; padding:14px 18px; min-width:140px;
+  background:#fff; transition:border-color .2s, background .2s;
+}
+.mgroup.marked{border-color:var(--lex); background:var(--lex-soft);}
+.mgroup.highlight{outline:3px solid var(--shared); outline-offset:2px;}
+.mgroup .gname{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:0.82rem; color:var(--ink-soft); margin-bottom:8px; display:block;}
+.mgroup.marked .gname{color:var(--lex);}
+.mgroup .gstates{display:flex; gap:6px; flex-wrap:wrap;}
+.mgroup .gstatus{font-size:0.72rem; margin-top:8px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:#b0774a;}
+.mgroup.marked .gstatus{color:var(--lex);}
+</style>
+
+<script>
+const mSteps = [
+  {
+    label: "Step 1 · Initial split",
+    text: "Every DFA has exactly two starting groups: accepting states, and everything else. s3' is the only accepting state.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:false},
+      {name:"S \\ F (non-accepting)", states:["s0'","s1'","s2'"], marked:false},
+    ],
+    highlight: null
+  },
+  {
+    label: "Step 2 · Check {s3'}",
+    text: "A singleton group is automatically consistent — nothing to compare it against. Mark it.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:true},
+      {name:"S \\ F (non-accepting)", states:["s0'","s1'","s2'"], marked:false},
+    ],
+    highlight: "F (accepting)"
+  },
+  {
+    label: "Step 3 · Check {s0', s1', s2'} — INCONSISTENT",
+    text: "On symbol c: s0' and s2' both have no transition (agree), but s1' transitions to s3' — a different group. That's inconsistent. Split into maximal consistent subgroups: {s0', s2'} (identical a/b/c behaviour) and {s1'} (the odd one out). Splitting un-marks every group again, including F.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:false},
+      {name:"G1", states:["s0'","s2'"], marked:false},
+      {name:"G2", states:["s1'"], marked:false},
+    ],
+    highlight: "G1"
+  },
+  {
+    label: "Step 4 · Check {s1'} (G2)",
+    text: "Singleton — automatically consistent. Mark it.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:false},
+      {name:"G1", states:["s0'","s2'"], marked:false},
+      {name:"G2", states:["s1'"], marked:true},
+    ],
+    highlight: "G2"
+  },
+  {
+    label: "Step 5 · Check {s0', s2'} (G1)",
+    text: "s0' and s2' both go to G2 on a, to G1 itself on b, and have no transition on c — completely identical pattern. Consistent. Mark it.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:false},
+      {name:"G1", states:["s0'","s2'"], marked:true},
+      {name:"G2", states:["s1'"], marked:true},
+    ],
+    highlight: "G1"
+  },
+  {
+    label: "Step 6 · Re-check {s3'} (F)",
+    text: "Still a singleton, still automatically consistent. Mark it again.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:true},
+      {name:"G1", states:["s0'","s2'"], marked:true},
+      {name:"G2", states:["s1'"], marked:true},
+    ],
+    highlight: "F (accepting)"
+  },
+  {
+    label: "Step 7 · All marked — done",
+    text: "No unmarked groups remain. These three groups are the states of the minimal DFA: F={s3'}, G1={s0',s2'} (the merged state), G2={s1'}. Three states, matching the by-inspection answer on the Minimization overview page.",
+    groups: [
+      {name:"F (accepting)", states:["s3'"], marked:true},
+      {name:"G1 → minimal state M", states:["s0'","s2'"], marked:true},
+      {name:"G2 → minimal state s1'", states:["s1'"], marked:true},
+    ],
+    highlight: null
+  },
+];
+
+let mIdx = 0;
+
+function renderM(){
+  document.getElementById('m-title').textContent = mIdx === 0 ? "Ready to start" : mSteps[mIdx-1].label;
+  document.getElementById('m-progress').textContent = `Step ${mIdx} of ${mSteps.length}`;
+
+  const groupsWrap = document.getElementById('m-groups');
+  groupsWrap.innerHTML = "";
+  if (mIdx === 0){
+    const g = document.createElement('div');
+    g.className = 'mgroup';
+    g.innerHTML = `<span class="gname">All states</span><div class="gstates">
+      <span class="chip">s0'</span><span class="chip">s1'</span><span class="chip">s2'</span><span class="chip">s3'</span>
+    </div>`;
+    groupsWrap.appendChild(g);
+  } else {
+    const s = mSteps[mIdx-1];
+    s.groups.forEach(g=>{
+      const el = document.createElement('div');
+      el.className = 'mgroup' + (g.marked ? ' marked' : '') + (g.name === s.highlight ? ' highlight' : '');
+      el.innerHTML = `<span class="gname">${g.name}</span><div class="gstates">${g.states.map(st=>`<span class="chip">${st}</span>`).join('')}</div><div class="gstatus">${g.marked ? '✓ consistent' : 'unmarked'}</div>`;
+      groupsWrap.appendChild(el);
+    });
+  }
+
+  const explain = document.getElementById('m-explain');
+  explain.innerHTML = mIdx === 0
+    ? `<span class="step-label">Step 0 · Not started</span>Click "Next" to make the initial accepting / non-accepting split.`
+    : `<span class="step-label">${mSteps[mIdx-1].label}</span>${mSteps[mIdx-1].text}`;
+
+  const dotsWrap = document.getElementById('m-dots');
+  dotsWrap.innerHTML = "";
+  mSteps.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < mIdx ? ' done lex' : '') + (i === mIdx-1 ? ' current' : '');
+    dotsWrap.appendChild(d);
+  });
+
+  document.getElementById('m-prev').disabled = mIdx === 0;
+  document.getElementById('m-next').disabled = mIdx === mSteps.length;
+}
+document.getElementById('m-next').addEventListener('click', ()=>{ if (mIdx < mSteps.length){ mIdx++; renderM(); }});
+document.getElementById('m-prev').addEventListener('click', ()=>{ if (mIdx > 0){ mIdx--; renderM(); }});
+document.getElementById('m-reset').addEventListener('click', ()=>{ mIdx = 0; renderM(); });
+renderM();
+</script>
+
+</body>
+</html>

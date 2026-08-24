@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2024 Test 1 — Full Worked Solutions</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Past Papers<small>COS341 · Worked Solutions</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="past-papers-index.html">Papers Index</a>
+      <a href="paper-2024-test1.html" class="active">2024 Test 1</a>
+      <a href="paper-2023-semester-test.html">2023 Semester Test</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker shared">Worked Solutions</span>
+  <h1 class="page-title">2024 Test 1 — Full Step-Through</h1>
+  <p class="subtitle">
+    Grammar G (start symbol S), numbered rules 1–6:
+  </p>
+  <div class="rule-box">
+1. S → Z
+2. Z → X a Y
+3. X → a
+4. X → ε        <span class="cm">(nullable)</span>
+5. Y → a
+6. Y → ε        <span class="cm">(nullable)</span>
+  </div>
+
+  <div class="qbox">
+    <h3>A.1 <span class="pts">[1P]</span></h3>
+    <p class="prompt">Provide the given grammar's generated language L(G) entirely.</p>
+    <span class="ans-label">Answer</span>
+    <p>Every derivation is S ⇒ Z ⇒ X a Y, with X ∈ {a, ε} and Y ∈ {a, ε} independently. The four
+    combinations give:</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>X</th><th>Y</th><th>Resulting string</th></tr>
+      <tr><td>ε</td><td>ε</td><td class="hl">a</td></tr>
+      <tr><td>a</td><td>ε</td><td class="hl">aa</td></tr>
+      <tr><td>ε</td><td>a</td><td class="hl">aa</td></tr>
+      <tr><td>a</td><td>a</td><td class="hl">aaa</td></tr>
+    </table>
+    <p><strong>L(G) = { a, aa, aaa }</strong> — i.e. aⁿ for 1 ≤ n ≤ 3. Note "aa" is produced by
+    <em>two different</em> combinations (X=a,Y=ε and X=ε,Y=a) — that's the seed of the
+    ambiguity proved next.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.2 <span class="pts">[1P]</span></h3>
+    <p class="prompt">Prove by means of two structurally different syntax trees that G is ambiguous.</p>
+    <span class="ans-label">Answer</span>
+    <p>Both trees derive the string <span class="mono">aa</span>:</p>
+    <div class="syntax-tree" role="img" aria-label="First syntax tree for S deriving aa">
+      <div class="tree-root"><span class="nt">S</span></div>
+      <div class="tree-child"><span class="nt">Z</span></div>
+      <div class="tree-grandchild"><span class="nt">X</span></div>
+      <div class="tree-greatgrandchild"><span class="t">a</span> <span class="cm">(rule 3: X→a)</span></div>
+      <div class="tree-grandchild"><span class="t">a</span></div>
+      <div class="tree-grandchild"><span class="nt">Y</span></div>
+      <div class="tree-greatgrandchild"><span class="eps">ε</span> <span class="cm">(rule 6: Y→ε)</span></div>
+    </div>
+    <p style="text-align:center; font-weight:600; color:var(--ink-soft);">vs.</p>
+    <div class="syntax-tree" role="img" aria-label="Second syntax tree for S deriving aa">
+      <div class="tree-root"><span class="nt">S</span></div>
+      <div class="tree-child"><span class="nt">Z</span></div>
+      <div class="tree-grandchild"><span class="nt">X</span></div>
+      <div class="tree-greatgrandchild"><span class="eps">ε</span> <span class="cm">(rule 4: X→ε)</span></div>
+      <div class="tree-grandchild"><span class="t">a</span></div>
+      <div class="tree-grandchild"><span class="nt">Y</span></div>
+      <div class="tree-greatgrandchild"><span class="t">a</span> <span class="cm">(rule 5: Y→a)</span></div>
+    </div>
+    <p>Two structurally different trees for the same string <span class="mono">aa</span> ⟹ G is
+    ambiguous.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.3 <span class="pts">[4P]</span></h3>
+    <p class="prompt">For each nonterminal, provide its FIRST set and FOLLOW set (remember the
+    additional rule 0 needed for FOLLOW).</p>
+    <span class="ans-label">Answer</span>
+    <div class="rule-box">
+0. S₀ → S $        <span class="cm">(added purely to seed FOLLOW(S) with $)</span>
+    </div>
+    <p><strong>Nullable:</strong> X and Y are nullable (rules 4, 6). Z is NOT nullable (its only
+    production contains the terminal a). S is NOT nullable (its only production is S→Z, and Z
+    isn't nullable).</p>
+    <table class="data">
+      <tr><th>Nonterminal</th><th>FIRST set</th><th>FOLLOW set</th></tr>
+      <tr><td>S</td><td class="hl">{a}</td><td class="hl">{$}</td></tr>
+      <tr><td>Z</td><td class="hl">{a}</td><td class="hl">{$}</td></tr>
+      <tr><td>X</td><td class="hl">{a}</td><td class="hl">{a}</td></tr>
+      <tr><td>Y</td><td class="hl">{a}</td><td class="hl">{$}</td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">
+    FOLLOW(X)={a} comes directly from the literal 'a' that always follows X inside
+    <span class="mono">Z→XaY</span> — nothing more, since that 'a' is a terminal (never nullable
+    away). FOLLOW(Y)={$} is inherited from FOLLOW(Z) (Y sits at the very end of
+    <span class="mono">Z→XaY</span>, so whatever can follow Z can follow Y). FOLLOW(Z)={$} is
+    inherited from FOLLOW(S) via rule 1, and FOLLOW(S)={$} comes directly from rule 0.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.4 <span class="pts">[2P]</span></h3>
+    <p class="prompt">For all rule-pairs sharing the same LHS nonterminal, apply the Look-Ahead-Set
+    method to prove G is not LL(1): identify and point out the relevant overlaps.</p>
+    <span class="ans-label">Answer</span>
+    <p>Only X (rules 3, 4) and Y (rules 5, 6) have more than one production — S and Z each have
+    only one rule, so there's no pair to compare there.</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>Rule</th><th>Look-Ahead-Set</th><th>Comments about relevant overlaps</th></tr>
+      <tr><td>3: X→a</td><td class="conflict">{a}</td><td class="conflict">Overlaps with rule 4 on <b>a</b> — CONFLICT</td></tr>
+      <tr><td>4: X→ε</td><td class="conflict">{a}</td><td class="conflict">= FIRST(ε) ∪ FOLLOW(X) = ∅ ∪ {a}. Overlaps with rule 3 on <b>a</b> — CONFLICT</td></tr>
+      <tr><td>5: Y→a</td><td class="hl">{a}</td><td>No overlap with rule 6 ({a} ∩ {$} = ∅)</td></tr>
+      <tr><td>6: Y→ε</td><td class="hl">{$}</td><td>= FOLLOW(Y). No overlap with rule 5</td></tr>
+    </table>
+    <p><strong>Conclusion:</strong> rules 3 and 4 both apply on lookahead symbol <span class="mono">a</span> for
+    nonterminal X — a genuine LL(1) conflict. G is therefore <strong>not in LL(1)</strong>. (The
+    Y-rules, by contrast, are conflict-free.)</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">Scenario for A.5–A.7</span>
+    Curt Curious wants to see what happens if we build an SLR table for this ambiguous grammar
+    anyway — including the augmented rule 0.
+  </div>
+
+  <div class="qbox">
+    <h3>A.5 <span class="pts">[3P]</span></h3>
+    <p class="prompt">Draw the non-deterministic control-NFA corresponding to the structure of G
+    (including rule 0). Use capital letters not already used as nonterminals for state names.</p>
+    <span class="ans-label">Answer — items and transitions</span>
+    <p>Building one NFA fragment per production (dot positions), with ε-transitions wherever the
+    dot sits before a nonterminal:</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>Production</th><th>States (dot positions)</th><th>Transitions</th></tr>
+      <tr><td>0: S₀→S$</td><td>A (•S$) → B (S•$) → C (S$•, <b>accept</b>)</td><td>A→B on S; B→C on $</td></tr>
+      <tr><td>1: S→Z</td><td>D (•Z) → E (Z•, final)</td><td>D→E on Z</td></tr>
+      <tr><td>2: Z→XaY</td><td>F (•XaY) → G (X•aY) → H (Xa•Y) → I (XaY•, final)</td><td>F→G on X; G→H on a; H→I on Y</td></tr>
+      <tr><td>3: X→a</td><td>J (•a) → K (a•, final)</td><td>J→K on a</td></tr>
+      <tr><td>4: X→ε</td><td>L (•, final — zero-width)</td><td>—</td></tr>
+      <tr><td>5: Y→a</td><td>M (•a) → N (a•, final)</td><td>M→N on a</td></tr>
+      <tr><td>6: Y→ε</td><td>O (•, final — zero-width)</td><td>—</td></tr>
+    </table>
+    <p><strong>ε-transitions (closure links, dot-before-nonterminal):</strong></p>
+    <div class="rule-box">
+A --ε--> D        <span class="cm">(A's dot sits before S ⟹ enter S's only production)</span>
+D --ε--> F        <span class="cm">(D's dot sits before Z ⟹ enter Z's only production)</span>
+F --ε--> J        <span class="cm">(F's dot sits before X ⟹ enter X's production 3)</span>
+F --ε--> L        <span class="cm">(F's dot sits before X ⟹ enter X's production 4 — already final)</span>
+H --ε--> M        <span class="cm">(H's dot sits before Y ⟹ enter Y's production 5)</span>
+H --ε--> O        <span class="cm">(H's dot sits before Y ⟹ enter Y's production 6 — already final)</span>
+    </div>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">15 states total (A–O). Final items —
+    C (accept), E (reduce 1), I (reduce 2), K (reduce 3), L (reduce 4), N (reduce 5), O (reduce
+    6).</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.6 <span class="pts">[3P]</span></h3>
+    <p class="prompt">Draw the minimal deterministic finite automaton DFA<sub>min</sub> that is
+    language-equivalent with the NFA above. Label its states with Roman numerals.</p>
+    <span class="ans-label">Step 1 — Subset construction (ε-closure work-list)</span>
+    <table class="data" style="text-align:left;">
+      <tr><th>State</th><th>= ε-closure of items</th><th>Contains</th></tr>
+      <tr><td>I</td><td>closure({A})</td><td class="hl">{S₀→•S$, S→•Z, Z→•XaY, X→•a, X→•}</td></tr>
+      <tr><td>II</td><td>GOTO(I, S)</td><td class="hl">{S₀→S•$}</td></tr>
+      <tr><td>III</td><td>GOTO(I, Z)</td><td class="hl">{S→Z•} <span class="mono">(reduce 1)</span></td></tr>
+      <tr><td>IV</td><td>GOTO(I, X)</td><td class="hl">{Z→X•aY}</td></tr>
+      <tr><td>V</td><td>GOTO(I, a)</td><td class="hl">{X→a•} <span class="mono">(reduce 3)</span></td></tr>
+      <tr><td>VI</td><td>GOTO(II, $)</td><td class="hl">{S₀→S$•} <span class="mono">(accept)</span></td></tr>
+      <tr><td>VII</td><td>GOTO(IV, a)</td><td class="hl">{Z→Xa•Y, Y→•a, Y→•} <span class="mono">(reduce 6 candidate)</span></td></tr>
+      <tr><td>VIII</td><td>GOTO(VII, Y)</td><td class="hl">{Z→XaY•} <span class="mono">(reduce 2)</span></td></tr>
+      <tr><td>IX</td><td>GOTO(VII, a)</td><td class="hl">{Y→a•} <span class="mono">(reduce 5)</span></td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);"><strong>Important:</strong> state I
+    itself already contains the completed item <span class="mono">X→•</span> (rule 4) alongside
+    its non-final items — I is simultaneously "still shifting" and "ready to reduce." This is
+    exactly where the ambiguity resurfaces.</p>
+
+    <span class="ans-label">Step 2 — Minimize (as in Chapter 1, using one accepting group per
+    reduce-rule, like a combined lexer DFA)</span>
+    <p>Initial groups: non-accepting {II, IV}; and one singleton group per distinct
+    reduce/accept tag: {I}(reduce4), {III}(reduce1), {V}(reduce3), {VI}(accept), {VII}(reduce6),
+    {VIII}(reduce2), {IX}(reduce5).</p>
+    <p>Check {II, IV}: II transitions only on $ (→VI); IV transitions only on a (→VII). II is
+    <em>undefined</em> on a while IV is defined — inconsistent. Split into {II} and {IV}.</p>
+    <p><strong>Result: no states merge.</strong> All 9 states are pairwise distinguishable, so
+    DFA<sub>min</sub> has exactly the same 9 states as the raw subset construction — this
+    automaton was already minimal. (Every accepting state carries a different reduce-tag, so
+    none of those could ever merge with each other either.)</p>
+  </div>
+
+  <div class="qbox">
+    <h3>A.7 <span class="pts">[3P]</span></h3>
+    <p class="prompt">On the basis of DFA<sub>min</sub>, provide G's SLR Parsing-Table (shift,
+    reduce, go, accept) and highlight any conflict fields.</p>
+    <span class="ans-label">Answer</span>
+    <table class="data">
+      <tr><th>State</th><th>a</th><th>$</th><th>S</th><th>Z</th><th>X</th><th>Y</th></tr>
+      <tr>
+        <td>I</td>
+        <td class="conflict">s5 / r4</td>
+        <td></td>
+        <td class="hl">go II</td>
+        <td class="hl">go III</td>
+        <td class="hl">go IV</td>
+        <td></td>
+      </tr>
+      <tr><td>II</td><td></td><td class="hl">s6</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>III</td><td></td><td class="hl">r1</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>IV</td><td class="hl">s7</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>V</td><td class="hl">r3</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>VI</td><td></td><td class="hl">accept</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>VII</td><td class="hl">s9</td><td class="hl">r6</td><td></td><td></td><td></td><td class="hl">go VIII</td></tr>
+      <tr><td>VIII</td><td></td><td class="hl">r2</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>IX</td><td></td><td class="hl">r5</td><td></td><td></td><td></td><td></td></tr>
+    </table>
+    <p><strong>The one conflict:</strong> state I, symbol <span class="mono">a</span> — both
+    <span class="mono">shift 5</span> (via X→•a) and <span class="mono">reduce 4</span> (via
+    X→ε, since a ∈ FOLLOW(X)) are valid. This is a genuine <strong>shift-reduce conflict</strong>,
+    the direct fingerprint of the same ambiguity already proven in A.2 and A.4 — X's two
+    productions can't be told apart on lookahead 'a' by any 1-token-lookahead method, LL(1) or
+    SLR alike.</p>
+  </div>
+
+  <div class="qbox">
+    <h3>Task B <span class="pts">[3P]</span></h3>
+    <p class="prompt">Semantics: a do-while-loop goes into another iteration if the boolean
+    condition still holds at the end of the body; a repeat-until-loop exits as soon as the
+    condition is true at the end of the body. Both emit code of the structure
+    <span class="mono">LABEL L1 ++ bodyCode ++ boolCode ++ LABEL L2</span>. For repeat-until, the
+    textbook gives <span class="mono">boolCode = Trans_cond(COND, L2, L1, vtable, ftable)</span>.
+    What's the correct call for a do-while-loop?</p>
+    <span class="ans-label">Answer</span>
+    <p>From the textbook's Fig. 6.6 convention, <span class="mono">Trans_cond(Cond, label_t,
+    label_f, vtable, ftable)</span> takes the <em>true</em>-branch target as its second
+    parameter and the <em>false</em>-branch target as its third — confirmed directly by the
+    repeat-until call itself: <span class="mono">Trans_cond(COND, L2, L1, ...)</span> means "jump
+    to L2 (exit, placed right after the loop) when COND is true, jump to L1 (repeat) when
+    false" — which is exactly repeat-until's exit-on-true semantics.</p>
+    <p>Do-while has the <em>opposite</em> mapping: it repeats (jumps to L1) when COND is
+    <strong>true</strong>, and exits (falls to L2) when COND is <strong>false</strong>. So the
+    true-target and false-target simply swap relative to repeat-until:</p>
+    <div class="rule-box">
+boolCode = Trans_cond(COND, L1, L2, vtable, ftable)
+    </div>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">Everything else about the surrounding
+    code shape (<span class="mono">LABEL L1 ++ bodyCode ++ boolCode ++ LABEL L2</span>) stays
+    identical — only which label plays the "true" role and which plays the "false" role
+    changes.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="past-papers-index.html">← Papers Index</a>
+    <a href="paper-2023-semester-test.html">Next: 2023 Semester Test →</a>
+  </div>
+
+</div>
+</body>
+</html>

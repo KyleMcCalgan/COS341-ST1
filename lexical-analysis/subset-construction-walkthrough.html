@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subset Construction Walkthrough</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html" class="active">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">Interactive Walkthrough</span>
+  <h1 class="page-title">Building — and then running — the DFA</h1>
+  <p class="subtitle">
+    Same NFA as the <a href="nfa.html">NFA page</a>: 8 states for
+    <span class="mono">(a|b)*ac</span>. Part 1 runs the subset-construction work-list algorithm
+    one state at a time. Part 2 runs the finished DFA on a real string.
+  </p>
+
+  <div class="section">
+    <h2>Part 1 — The work-list algorithm, one state at a time</h2>
+    <p>Each click processes one unmarked DFA state: compute ε-closure(move(state, c)) for every
+    symbol c, record the results, and add any newly-discovered state sets to the work list.</p>
+
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="b-title">—</p>
+        <span class="stepper-progress" id="b-progress">—</span>
+      </div>
+
+      <table class="build-table" id="b-table">
+        <tr><th>DFA state</th><th>NFA states (ε-closure)</th><th>move(·, a)</th><th>move(·, b)</th><th>move(·, c)</th></tr>
+        <tr><td class="rowhead">s0'</td><td class="empty" id="b-s0-set">—</td><td class="empty" id="b-s0-a">—</td><td class="empty" id="b-s0-b">—</td><td class="empty" id="b-s0-c">—</td></tr>
+        <tr><td class="rowhead">s1'</td><td class="empty" id="b-s1-set">—</td><td class="empty" id="b-s1-a">—</td><td class="empty" id="b-s1-b">—</td><td class="empty" id="b-s1-c">—</td></tr>
+        <tr><td class="rowhead">s2'</td><td class="empty" id="b-s2-set">—</td><td class="empty" id="b-s2-a">—</td><td class="empty" id="b-s2-b">—</td><td class="empty" id="b-s2-c">—</td></tr>
+        <tr><td class="rowhead">s3'</td><td class="empty" id="b-s3-set">—</td><td class="empty" id="b-s3-a">—</td><td class="empty" id="b-s3-b">—</td><td class="empty" id="b-s3-c">—</td></tr>
+      </table>
+
+      <div class="explain-box lex" id="b-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to seed the start state.
+      </div>
+
+      <div class="dots" id="b-dots"></div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="b-prev">← Back</button>
+        <button class="step-btn primary lex" id="b-next">Next →</button>
+        <button class="step-btn reset" id="b-reset">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Part 2 — Running the finished DFA on "abac"</h2>
+    <p><span class="mono">abac</span> = <span class="mono">ab</span> (two iterations of
+    <span class="mono">(a|b)</span>) + <span class="mono">ac</span> — it should be accepted.</p>
+
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="t-title">—</p>
+        <span class="stepper-progress" id="t-progress">—</span>
+      </div>
+
+      <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:6px;">
+        <div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Current DFA state</div>
+          <div class="stack-chip-row" id="t-state"></div>
+        </div>
+        <div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Remaining input</div>
+          <div class="stack-chip-row" id="t-input"></div>
+        </div>
+      </div>
+
+      <div class="explain-box lex" id="t-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to take the first step.
+      </div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="t-prev">← Back</button>
+        <button class="step-btn primary lex" id="t-next">Next →</button>
+        <button class="step-btn reset" id="t-reset">Reset</button>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--ink-soft); margin-top:14px;">Full trace so far:</p>
+      <table class="trace-table" id="t-history">
+        <tr><th style="width:34px;">#</th><th>State</th><th>Input</th><th>Action</th></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer-nav">
+    <a href="dfa-subset.html">← DFA Overview</a>
+    <a href="minimization-walkthrough.html">Next: Minimization Walkthrough →</a>
+  </div>
+
+</div>
+
+<script>
+/* ================= PART 1: SUBSET CONSTRUCTION ================= */
+const bSteps = [
+  {
+    label: "Step 1 · Seed the start state",
+    text: "s0' = ε-closure({1}). Starting from NFA state 1, follow every ε-transition reachable: 1→5, 5→6, 5→7. State 8 is NOT included — reaching it needs an a or b, not ε. s0' = {1, 2, 5, 6, 7} — wait, where does 2 come from? 1 has a direct ε-transition to 2 as well (the \"skip the star\" path). So s0' = {1, 2, 5, 6, 7}.",
+    fill: {row:"s0", set:"{1, 2, 5, 6, 7}"}
+  },
+  {
+    label: "Step 2 · Process s0' (mark it)",
+    text: "From {1,2,5,6,7}: on a, only state 2 has an a-transition (2→3), and state 6 has one too (6→8) — so move(s0',a) = ε-closure({3,8}) = {1,2,3,5,6,7,8} = s1' (new). On b, only state 7 has one (7→8) — move(s0',b) = ε-closure({8}) = {1,2,5,6,7,8} = s2' (new). On c, nothing in the set has a c-transition — move(s0',c) is empty.",
+    fill: {row:"s0", a:"s1'", b:"s2'", c:"—", newRows:[{row:"s1", set:"{1,2,3,5,6,7,8}"},{row:"s2", set:"{1,2,5,6,7,8}"}]}
+  },
+  {
+    label: "Step 3 · Process s1' (mark it)",
+    text: "From {1,2,3,5,6,7,8}: on a, states 2 and 6 fire again → ε-closure({3,8}) = s1' itself (self-loop). On b, state 7 fires → ε-closure({8}) = s2' (already known). On c, state 3 fires (3→4) → ε-closure({4}) = {4} = s3' (new — and 4 is accepting).",
+    fill: {row:"s1", a:"s1'", b:"s2'", c:"s3'", newRows:[{row:"s3", set:"{4}  (accepting)"}]}
+  },
+  {
+    label: "Step 4 · Process s2' (mark it)",
+    text: "From {1,2,5,6,7,8}: on a, states 2 and 6 fire → s1' (already known). On b, state 7 fires → ε-closure({8}) = {1,2,5,6,7,8} = s2' itself (self-loop). On c: nothing fires.",
+    fill: {row:"s2", a:"s1'", b:"s2'", c:"—"}
+  },
+  {
+    label: "Step 5 · Process s3' (mark it)",
+    text: "s3' = {4}, and state 4 has no outgoing transitions at all (it's the final accepting state of the whole NFA) — every move(s3', ·) is empty.",
+    fill: {row:"s3", a:"—", b:"—", c:"—"}
+  },
+  {
+    label: "Step 6 · Work list empty — done",
+    text: "All four states have been processed and no new state sets were discovered. This matches the textbook's own result exactly: 4 DFA states from an 8-state NFA. Only s3' contains the NFA's accepting state 4, so it's the DFA's only accepting state.",
+    fill: {}
+  }
+];
+
+let bIdx = 0;
+const bFilled = {}; // "s0-set" -> value
+
+function applyStep(i){
+  const s = bSteps[i];
+  if (s.fill.row){
+    const r = s.fill.row;
+    if (s.fill.set) bFilled[`${r}-set`] = s.fill.set;
+    if (s.fill.a) bFilled[`${r}-a`] = s.fill.a;
+    if (s.fill.b) bFilled[`${r}-b`] = s.fill.b;
+    if (s.fill.c) bFilled[`${r}-c`] = s.fill.c;
+  }
+  if (s.fill.newRows){
+    s.fill.newRows.forEach(nr=>{ bFilled[`${nr.row}-set`] = nr.set; });
+  }
+}
+
+function renderB(){
+  document.getElementById('b-title').textContent = bIdx === 0 ? "Ready to start" : bSteps[bIdx-1].label;
+  document.getElementById('b-progress').textContent = `Step ${bIdx} of ${bSteps.length}`;
+
+  for (const k in bFilled) delete bFilled[k];
+  for (let i=0;i<bIdx;i++) applyStep(i);
+
+  ["s0","s1","s2","s3"].forEach(r=>{
+    ["set","a","b","c"].forEach(col=>{
+      const el = document.getElementById(`b-${r}-${col}`);
+      const key = `${r}-${col}`;
+      if (bFilled[key]){
+        el.textContent = bFilled[key];
+        el.className = "filled lex";
+      } else {
+        el.textContent = "—";
+        el.className = "empty";
+      }
+    });
+  });
+
+  if (bIdx > 0){
+    const s = bSteps[bIdx-1];
+    const glowCells = [];
+    if (s.fill.row){
+      ["set","a","b","c"].forEach(col=>{ if (s.fill[col]) glowCells.push(`${s.fill.row}-${col}`); });
+    }
+    if (s.fill.newRows) s.fill.newRows.forEach(nr=>glowCells.push(`${nr.row}-set`));
+    glowCells.forEach(key=>{
+      const el = document.getElementById(`b-${key}`);
+      if (el){ el.style.setProperty('--pulse-color', '#3457a6'); el.classList.remove('glow'); void el.offsetWidth; el.classList.add('glow'); }
+    });
+  }
+
+  const explain = document.getElementById('b-explain');
+  explain.innerHTML = bIdx === 0
+    ? `<span class="step-label">Step 0 · Not started</span>Click "Next" to seed the start state.`
+    : `<span class="step-label">${bSteps[bIdx-1].label}</span>${bSteps[bIdx-1].text}`;
+
+  const dotsWrap = document.getElementById('b-dots');
+  dotsWrap.innerHTML = "";
+  bSteps.forEach((s,i)=>{
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < bIdx ? ' done lex' : '') + (i === bIdx-1 ? ' current' : '');
+    dotsWrap.appendChild(d);
+  });
+
+  document.getElementById('b-prev').disabled = bIdx === 0;
+  document.getElementById('b-next').disabled = bIdx === bSteps.length;
+}
+document.getElementById('b-next').addEventListener('click', ()=>{ if (bIdx < bSteps.length){ bIdx++; renderB(); }});
+document.getElementById('b-prev').addEventListener('click', ()=>{ if (bIdx > 0){ bIdx--; renderB(); }});
+document.getElementById('b-reset').addEventListener('click', ()=>{ bIdx = 0; renderB(); });
+renderB();
+
+/* ================= PART 2: RUN THE DFA ================= */
+const tSteps = [
+  {stateBefore:"s0'", inputBefore:"a b a c", label:"Read a: s0'→s1'", detail:"move(s0', a) = s1'. Consume the a.", stateAfter:"s1'", inputAfter:"b a c"},
+  {stateBefore:"s1'", inputBefore:"b a c", label:"Read b: s1'→s2'", detail:"move(s1', b) = s2'. Consume the b.", stateAfter:"s2'", inputAfter:"a c"},
+  {stateBefore:"s2'", inputBefore:"a c", label:"Read a: s2'→s1'", detail:"move(s2', a) = s1'. Consume the a.", stateAfter:"s1'", inputAfter:"c"},
+  {stateBefore:"s1'", inputBefore:"c", label:"Read c: s1'→s3'", detail:"move(s1', c) = s3'. Consume the c.", stateAfter:"s3'", inputAfter:""},
+  {stateBefore:"s3'", inputBefore:"", label:"Input exhausted — ACCEPT", detail:"No input left, and s3' is an accepting state (it contains NFA state 4). The string abac is accepted.", stateAfter:"s3'", inputAfter:"", accept:true},
+];
+let tIdx = 0;
+
+function chipRowLex(str){
+  if (!str) return `<span class="chip" style="opacity:.5;">empty</span>`;
+  return str.split(" ").map(t=>`<span class="chip">${t}</span>`).join("");
+}
+
+function renderT(){
+  document.getElementById('t-title').textContent = tIdx === 0 ? "Ready to start" : tSteps[tIdx-1].label;
+  document.getElementById('t-progress').textContent = `Step ${tIdx} of ${tSteps.length}`;
+
+  const cur = tIdx === 0 ? {stateBefore:"s0'", inputBefore:"a b a c"} : tSteps[tIdx-1];
+  const stateShown = tIdx === 0 ? cur.stateBefore : cur.stateAfter;
+  const inputShown = tIdx === 0 ? cur.inputBefore : cur.inputAfter;
+
+  document.getElementById('t-state').innerHTML = `<span class="chip top">${stateShown}</span>`;
+  document.getElementById('t-input').innerHTML = chipRowLex(inputShown);
+
+  const explain = document.getElementById('t-explain');
+  explain.innerHTML = tIdx === 0
+    ? `<span class="step-label">Step 0 · Not started</span>Click "Next" to take the first step.`
+    : `<span class="step-label">${tSteps[tIdx-1].label}</span>${tSteps[tIdx-1].detail}`;
+
+  const hist = document.getElementById('t-history');
+  hist.innerHTML = `<tr><th style="width:34px;">#</th><th>State</th><th>Input</th><th>Action</th></tr>`;
+  for (let i=0;i<tIdx;i++){
+    const s = tSteps[i];
+    const cls = i === tIdx-1 ? ` class="current-row lex"` : "";
+    const actionCls = s.accept ? "action-accept" : "action-expand";
+    hist.innerHTML += `<tr${cls}><td class="step-idx">${i+1}</td><td>${s.stateBefore}</td><td>${s.inputBefore || "(empty)"}</td><td class="${actionCls}">${s.label}</td></tr>`;
+  }
+
+  document.getElementById('t-prev').disabled = tIdx === 0;
+  document.getElementById('t-next').disabled = tIdx === tSteps.length;
+}
+document.getElementById('t-next').addEventListener('click', ()=>{ if (tIdx < tSteps.length){ tIdx++; renderT(); }});
+document.getElementById('t-prev').addEventListener('click', ()=>{ if (tIdx > 0){ tIdx--; renderT(); }});
+document.getElementById('t-reset').addEventListener('click', ()=>{ tIdx = 0; renderT(); });
+renderT();
+</script>
+
+</body>
+</html>

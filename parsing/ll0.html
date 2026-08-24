@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Note on "LL(0)"</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="ll1.html">LL(1)</a>
+      <a href="slr.html">SLR</a>
+      <a href="compare.html">Compare</a>
+      <a href="ll1-walkthrough.html">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html">SLR Walkthrough</a>
+      <a href="ll0.html" class="active">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker shared">Clarification</span>
+  <h1 class="page-title">There's no "LL(0)" step in this textbook — here's why</h1>
+  <p class="subtitle">
+    I searched the full text of <em>Introduction to Compiler Design</em> for it: no
+    "Algorithm", section, or figure is named LL(0) anywhere in the chapter on parsing. That's
+    not an omission — it's because LL(0) parsing is a real but almost useless degenerate case,
+    and naming it mostly serves to sharpen what the "1" in LL(1) is actually buying you.
+  </p>
+
+  <div class="section">
+    <h2>What LL(0) would mean, literally</h2>
+    <p>Follow the naming convention: Left-to-right input, Leftmost derivation, <strong>0</strong>
+    symbols of lookahead. Zero lookahead means the parser must choose which production to
+    apply for a nonterminal N <em>without looking at the input at all</em> — not even the next
+    symbol.</p>
+    <div class="rule-box">
+<span class="label">Consequence</span>
+For LL(0) to work, every nonterminal must have <em>at most one production</em> —
+otherwise there is, by definition, no information available to choose between them.
+    </div>
+    <p>A grammar where every nonterminal has exactly one production doesn't really have
+    "choices" left in it at all — it deterministically unfolds into one fixed shape (modulo
+    recursion depth). That's a vanishingly small class of grammars — essentially none of the
+    grammars that describe real programming-language constructs (an <span class="mono">if</span>
+    with or without an <span class="mono">else</span>, an expression that may or may not have
+    a following operator, a statement list that may or may not continue) can be written this
+    way, because those are exactly the situations where you need at least one symbol of input
+    to know which shape you're in.</p>
+  </div>
+
+  <div class="section">
+    <h2>Why the field jumps straight to LL(1)</h2>
+    <p>The moment a nonterminal has two productions — even the most basic case, "is this list
+    empty or not" — you need to distinguish them somehow. The cheapest possible piece of
+    information that could ever distinguish them is the very next input symbol. That's exactly
+    one symbol of lookahead. LL(1) is, in effect, the smallest lookahead that makes the method
+    non-trivial, which is why it's the standard entry point rather than LL(0).</p>
+    <p>Higher values of k (LL(2), LL(k) in general) exist and extend the same idea by
+    committing to a production based on the next <em>k</em> symbols instead of 1 — but they
+    aren't covered in this textbook's chapter either, and grow the table size and complexity
+    fast for limited practical gain, which is part of why SLR (covered in full on the
+    <a href="slr.html">SLR page</a>) is usually reached for instead once LL(1) isn't enough.</p>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">If the test scope really does mean LL(0)</span>
+    Double check whether "LL0" in your notes actually refers to something else that sounds
+    similar — most commonly this is a mix-up with <strong>LR(0)</strong>, which is a real and
+    heavily-examined concept: it's the item/automaton construction that SLR is built on top of
+    (Steps A–C on the <a href="slr.html">SLR page</a>), before FOLLOW sets are used to add
+    reduce actions. If your lecture used the term "LL0" to mean the plain LR(0) automaton
+    construction, the <a href="slr.html">SLR page</a>'s CLOSURE/GOTO section is the one to
+    study.
+  </div>
+
+  <div class="footer-nav">
+    <a href="compare.html">← Compare</a>
+    <a href="index.html">Back to Parsing Index →</a>
+  </div>
+
+</div>
+</body>
+</html>

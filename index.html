@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compiler Design Study Notes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Compiler Design<small>COS341 · Study Notes</small></div>
+    <nav class="topnav">
+      <a href="index.html" class="active">Course Index</a>
+      <a href="parsing/index.html">Topic-Area 2 · Parsing</a>
+      <a href="lexical-analysis/lex-index.html">Topic-Area 1 · Lexical Analysis</a>
+      <a href="past-papers/past-papers-index.html">Applied Practice · Past Papers</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+  <span class="kicker shared">COS341 · Course Notes</span>
+  <h1 class="page-title">Compiler design, organized by topic area</h1>
+  <p class="subtitle">
+    These standalone study notes cover the two core construction pipelines that connect a
+    source program to a parser: lexical analysis turns characters into tokens, while parsing
+    checks those tokens against a context-free grammar. The past-paper section applies both
+    topic areas to worked solutions from real exams.
+  </p>
+
+  <div class="section">
+    <h2>Choose a topic area</h2>
+    <div class="card-grid">
+      <a class="nav-card shared" href="lexical-analysis/lex-index.html">
+        <h3>Topic-Area 1 — Lexical Analysis</h3>
+        <p>Regular expressions, NFAs, DFA subset construction, minimization, lexer design, and
+        interactive walkthroughs for the full character-to-token pipeline.</p>
+        <span class="tag">lexical-analysis/</span>
+      </a>
+      <a class="nav-card ll1" href="parsing/index.html">
+        <h3>Topic-Area 2 — Parsing</h3>
+        <p>CFGs, predictive LL(1) parsing, bottom-up SLR parsing, grammar properties, and
+        interactive walkthroughs that build and run the parsing tables.</p>
+        <span class="tag">parsing/</span>
+      </a>
+      <a class="nav-card slr" href="past-papers/past-papers-index.html">
+        <h3>Applied Practice — Past Papers</h3>
+        <p>Worked solutions to real exam questions that combine lexical analysis, parsing,
+        intermediate code, and type-analysis techniques.</p>
+        <span class="tag">past-papers/</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Study flow:</strong> start with lexical analysis to follow how text becomes a token
+    stream, then use the parsing notes to see how that stream is recognized by a grammar. Finish
+    with the past papers to practise combining the techniques under exam conditions.
+  </div>
+</div>
+</body>
+</html>

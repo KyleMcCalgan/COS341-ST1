@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLR Walkthrough — Using the Table</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="ll1.html">LL(1)</a>
+      <a href="slr.html">SLR</a>
+      <a href="compare.html">Compare</a>
+      <a href="ll1-walkthrough.html">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html" class="active">SLR Walkthrough</a>
+      <a href="ll0.html">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker slr">Bottom-Up · Interactive Walkthrough</span>
+  <h1 class="page-title">Running the SLR table on <span class="mono" style="font-size:0.7em;">aabbbcc</span></h1>
+  <p class="subtitle">
+    Same grammar and the same string as the <a href="ll1-walkthrough.html">LL(1) walkthrough</a>
+    — deliberately, so you can compare the two step counts and see where bottom-up parsing
+    commits to different things at different moments. This uses the SLR table built on the
+    <a href="slr.html">SLR overview page</a>: 8 states, shift/goto/reduce/accept actions.
+  </p>
+
+  <div class="callout warn">
+    <span class="label">Reading the stack</span>
+    The stack interleaves grammar symbols and DFA states, with the current state always on
+    top. <span class="mono">reduce p</span> pops <em>2r</em> stack elements (r = number of
+    symbols on the right-hand side of production p — for an ε-production, r = 0, so nothing is
+    popped at all), then pushes the left-hand nonterminal and the state found by
+    <span class="mono">goto</span>.
+  </div>
+
+  <div class="section">
+    <h2>Step through the parse</h2>
+
+    <div class="walk-panel">
+      <div class="stepper-head">
+        <p class="stepper-title" id="trace-title">—</p>
+        <span class="stepper-progress" id="trace-progress">—</span>
+      </div>
+
+      <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:6px;">
+        <div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Stack (bottom → top, left → right)</div>
+          <div class="stack-chip-row" id="trace-stack"></div>
+        </div>
+        <div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Remaining input</div>
+          <div class="stack-chip-row" id="trace-input"></div>
+        </div>
+      </div>
+
+      <div class="explain-box slr" id="trace-explain">
+        <span class="step-label">Step 0 · Not started</span>
+        Click "Next" to take the first parsing action.
+      </div>
+
+      <div class="ref-table-wrap">
+        <div class="table-scroll"><table class="build-table" id="ref-table" style="margin-top:16px; font-size:0.82rem;">
+          <tr><th>State</th><th>a</th><th>b</th><th>c</th><th>$</th><th>T</th><th>R</th></tr>
+          <tr><td class="rowhead">0</td><td class="filled slr" id="ref-0-a">s3</td><td class="filled slr" id="ref-0-b">s4</td><td class="filled slr" id="ref-0-c">r3</td><td class="filled slr" id="ref-0-$">r3</td><td class="filled slr" id="ref-0-T">go1</td><td class="filled slr" id="ref-0-R">go2</td></tr>
+          <tr><td class="rowhead">1</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td><td class="filled slr" id="ref-1-$">acc</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td class="rowhead">2</td><td class="empty">—</td><td class="empty">—</td><td class="filled slr" id="ref-2-c">r1</td><td class="filled slr" id="ref-2-$">r1</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td class="rowhead">3</td><td class="filled slr" id="ref-3-a">s3</td><td class="filled slr" id="ref-3-b">s4</td><td class="filled slr" id="ref-3-c">r3</td><td class="filled slr" id="ref-3-$">r3</td><td class="filled slr" id="ref-3-T">go5</td><td class="filled slr" id="ref-3-R">go2</td></tr>
+          <tr><td class="rowhead">4</td><td class="empty">—</td><td class="filled slr" id="ref-4-b">s4</td><td class="filled slr" id="ref-4-c">r3</td><td class="filled slr" id="ref-4-$">r3</td><td class="empty">—</td><td class="filled slr" id="ref-4-R">go6</td></tr>
+          <tr><td class="rowhead">5</td><td class="empty">—</td><td class="empty">—</td><td class="filled slr" id="ref-5-c">s7</td><td class="empty">—</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td class="rowhead">6</td><td class="empty">—</td><td class="empty">—</td><td class="filled slr" id="ref-6-c">r4</td><td class="filled slr" id="ref-6-$">r4</td><td class="empty">—</td><td class="empty">—</td></tr>
+          <tr><td class="rowhead">7</td><td class="empty">—</td><td class="empty">—</td><td class="filled slr" id="ref-7-c">r2</td><td class="filled slr" id="ref-7-$">r2</td><td class="empty">—</td><td class="empty">—</td></tr>
+        </table></div>
+      </div>
+
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="trace-prev">← Back</button>
+        <button class="step-btn primary slr" id="trace-next">Next →</button>
+        <button class="step-btn reset" id="trace-reset">Reset</button>
+      </div>
+
+      <p style="font-size:0.85rem; color:var(--ink-soft); margin-top:14px;">Full trace so far:</p>
+      <div class="table-scroll"><table class="trace-table" id="trace-history">
+        <tr><th style="width:34px;">#</th><th>Stack</th><th>Input</th><th>Action</th></tr>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>What's different from the LL(1) trace</h2>
+    <ul class="plain">
+      <li>LL(1) needed exactly the same 15 actions on the same string — that's not a
+      coincidence for this particular grammar, but it won't hold in general: SLR's shift/reduce
+      granularity and LL(1)'s expand/match granularity don't have to line up.</li>
+      <li>LL(1) never shifts before knowing what it's building — it always expands the
+      nonterminal <em>first</em>. SLR shifts terminals eagerly (steps 1–5 here are all shifts)
+      and only figures out which production it just saw once a right-hand side is complete on
+      top of the stack.</li>
+      <li>Watch steps 6–9: three consecutive reduces with the input symbol <span class="mono">c</span>
+      not moving at all. Reduces never consume input — they only reorganise the stack. This is
+      the clearest visual difference from LL(1), where every table lookup was immediately
+      followed by consuming progress through the derivation.</li>
+    </ul>
+  </div>
+
+  <div class="footer-nav">
+    <a href="ll1-walkthrough.html">← LL(1) Walkthrough</a>
+    <a href="slr.html">Back to SLR Overview →</a>
+  </div>
+
+</div>
+
+<script>
+const traceSteps = [
+  {stackBefore:"0", inputBefore:"a a b b b c c $", type:"shift", cell:["0","a"], label:"Shift a, goto 3", detail:"State 0, next input a. table[0,a] = shift 3. Push a, then push state 3.", stackAfter:"0 a 3", inputAfter:"a b b b c c $"},
+  {stackBefore:"0 a 3", inputBefore:"a b b b c c $", type:"shift", cell:["3","a"], label:"Shift a, goto 3", detail:"State 3, next input a. table[3,a] = shift 3 — a self-loop, since T→a•Tc can absorb another leading a from a nested T.", stackAfter:"0 a 3 a 3", inputAfter:"b b b c c $"},
+  {stackBefore:"0 a 3 a 3", inputBefore:"b b b c c $", type:"shift", cell:["3","b"], label:"Shift b, goto 4", detail:"State 3, next input b. table[3,b] = shift 4 — this is where R's productions get closed into the item set.", stackAfter:"0 a 3 a 3 b 4", inputAfter:"b b c c $"},
+  {stackBefore:"0 a 3 a 3 b 4", inputBefore:"b b c c $", type:"shift", cell:["4","b"], label:"Shift b, goto 4", detail:"State 4, next input b. table[4,b] = shift 4 — self-loop, consuming the run of b's one at a time.", stackAfter:"0 a 3 a 3 b 4 b 4", inputAfter:"b c c $"},
+  {stackBefore:"0 a 3 a 3 b 4 b 4", inputBefore:"b c c $", type:"shift", cell:["4","b"], label:"Shift b, goto 4", detail:"Same self-loop again — third b shifted.", stackAfter:"0 a 3 a 3 b 4 b 4 b 4", inputAfter:"c c $"},
+  {stackBefore:"0 a 3 a 3 b 4 b 4 b 4", inputBefore:"c c $", type:"reduce", cell:["4","c"], label:"Reduce r3: R→ε", detail:"State 4, next input c. table[4,c] = reduce 3 (R→ε). r=0 symbols to pop — nothing comes off the stack. Push R, then goto(4,R)=6.", stackAfter:"0 a 3 a 3 b 4 b 4 b 4 R 6", inputAfter:"c c $"},
+  {stackBefore:"0 a 3 a 3 b 4 b 4 b 4 R 6", inputBefore:"c c $", type:"reduce", cell:["6","c"], label:"Reduce r4: R→bR", detail:"State 6, next input c. table[6,c] = reduce 4 (R→bR). r=2, so pop 4 stack elements (b,4,R,6), exposing state 4. Push R, then goto(4,R)=6.", stackAfter:"0 a 3 a 3 b 4 b 4 R 6", inputAfter:"c c $"},
+  {stackBefore:"0 a 3 a 3 b 4 b 4 R 6", inputBefore:"c c $", type:"reduce", cell:["6","c"], label:"Reduce r4: R→bR", detail:"Same reduction again — folding the second b into R.", stackAfter:"0 a 3 a 3 b 4 R 6", inputAfter:"c c $"},
+  {stackBefore:"0 a 3 a 3 b 4 R 6", inputBefore:"c c $", type:"reduce", cell:["6","c"], label:"Reduce r4: R→bR", detail:"Third and last R→bR reduction — this time popping back down to state 3. goto(3,R)=2.", stackAfter:"0 a 3 a 3 R 2", inputAfter:"c c $"},
+  {stackBefore:"0 a 3 a 3 R 2", inputBefore:"c c $", type:"reduce", cell:["2","c"], label:"Reduce r1: T→R", detail:"State 2, next input c. table[2,c] = reduce 1 (T→R). r=1, pop 2 elements (R,2), exposing state 3. Push T, then goto(3,T)=5.", stackAfter:"0 a 3 a 3 T 5", inputAfter:"c c $"},
+  {stackBefore:"0 a 3 a 3 T 5", inputBefore:"c c $", type:"shift", cell:["5","c"], label:"Shift c, goto 7", detail:"State 5, next input c. table[5,c] = shift 7 — the inner T→aTc is now waiting on its closing c.", stackAfter:"0 a 3 a 3 T 5 c 7", inputAfter:"c $"},
+  {stackBefore:"0 a 3 a 3 T 5 c 7", inputBefore:"c $", type:"reduce", cell:["7","c"], label:"Reduce r2: T→aTc", detail:"State 7, next input c. table[7,c] = reduce 2 (T→aTc). r=3, pop 6 elements (a,3,T,5,c,7), exposing state 3. Push T, then goto(3,T)=5.", stackAfter:"0 a 3 T 5", inputAfter:"c $"},
+  {stackBefore:"0 a 3 T 5", inputBefore:"c $", type:"shift", cell:["5","c"], label:"Shift c, goto 7", detail:"State 5 again, next input c — the outer T→aTc closing its own c.", stackAfter:"0 a 3 T 5 c 7", inputAfter:"$"},
+  {stackBefore:"0 a 3 T 5 c 7", inputBefore:"$", type:"reduce", cell:["7","$"], label:"Reduce r2: T→aTc", detail:"State 7, next input $. table[7,$] = reduce 2 (T→aTc). Pop 6 elements (a,3,T,5,c,7), exposing state 0. Push T, then goto(0,T)=1.", stackAfter:"0 T 1", inputAfter:"$"},
+  {stackBefore:"0 T 1", inputBefore:"$", type:"accept", cell:["1","$"], label:"Accept", detail:"State 1, next input $. table[1,$] = accept. The entire input has been reduced to the start symbol T sitting under state 1 — parsing succeeds.", stackAfter:"0 T 1", inputAfter:""},
+];
+
+let traceIdx = 0;
+
+function chipRow(str, highlightTop){
+  if (str === "" || str === undefined) return `<span class="chip" style="opacity:.5;">empty</span>`;
+  const toks = str.split(" ");
+  return toks.map((tok,i)=>{
+    const isState = /^[0-9]+$/.test(tok);
+    const isTop = highlightTop && i === toks.length-1;
+    let cls = isState ? "chip state" : "chip";
+    if (isTop) cls += " top";
+    return `<span class="${cls}">${tok}</span>`;
+  }).join("");
+}
+
+function clearRefHighlight(){
+  document.querySelectorAll('#ref-table td').forEach(td=>td.classList.remove('cell-active'));
+}
+
+function renderTrace(){
+  document.getElementById('trace-title').textContent = traceIdx === 0 ? "Ready to start" : traceSteps[traceIdx-1].label;
+  document.getElementById('trace-progress').textContent = `Step ${traceIdx} of ${traceSteps.length}`;
+
+  const cur = traceIdx === 0 ? {stackBefore:"0", inputBefore:"a a b b b c c $"} : traceSteps[traceIdx-1];
+  const stackShown = traceIdx === 0 ? cur.stackBefore : cur.stackAfter;
+  const inputShown = traceIdx === 0 ? cur.inputBefore : cur.inputAfter;
+
+  document.getElementById('trace-stack').innerHTML = chipRow(stackShown, true);
+  document.getElementById('trace-input').innerHTML = chipRow(inputShown, false);
+
+  clearRefHighlight();
+  const explain = document.getElementById('trace-explain');
+  if (traceIdx === 0){
+    explain.innerHTML = `<span class="step-label">Step 0 · Not started</span>Click "Next" to take the first parsing action.`;
+  } else {
+    const s = traceSteps[traceIdx-1];
+    explain.innerHTML = `<span class="step-label">${s.label}</span>${s.detail}`;
+    if (s.cell){
+      const el = document.getElementById(`ref-${s.cell[0]}-${s.cell[1]}`);
+      if (el) el.classList.add('cell-active');
+    }
+  }
+
+  const hist = document.getElementById('trace-history');
+  hist.innerHTML = `<tr><th style="width:34px;">#</th><th>Stack</th><th>Input</th><th>Action</th></tr>`;
+  for (let i=0;i<traceIdx;i++){
+    const s = traceSteps[i];
+    const cls = i === traceIdx-1 ? ` class="current-row slr"` : "";
+    const actionCls = s.type === "accept" ? "action-accept" : (s.type === "shift" ? "action-shift" : "action-reduce");
+    hist.innerHTML += `<tr${cls}><td class="step-idx">${i+1}</td><td>${s.stackBefore}</td><td>${s.inputBefore}</td><td class="${actionCls}">${s.label}</td></tr>`;
+  }
+
+  document.getElementById('trace-prev').disabled = traceIdx === 0;
+  document.getElementById('trace-next').disabled = traceIdx === traceSteps.length;
+}
+
+document.getElementById('trace-next').addEventListener('click', ()=>{ if (traceIdx < traceSteps.length){ traceIdx++; renderTrace(); }});
+document.getElementById('trace-prev').addEventListener('click', ()=>{ if (traceIdx > 0){ traceIdx--; renderTrace(); }});
+document.getElementById('trace-reset').addEventListener('click', ()=>{ traceIdx = 0; renderTrace(); });
+renderTrace();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regular Expressions</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html" class="active">Regex</a>
+      <a href="nfa.html">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">Foundations</span>
+  <h1 class="page-title">Regular Expressions</h1>
+  <p class="subtitle">
+    A regular expression is a compact algebraic notation for a <strong>language</strong> — a
+    set of strings. Everything downstream (NFA, DFA, lexer) exists to turn this notation into
+    something a machine can run efficiently.
+  </p>
+
+  <div class="section">
+    <h2>Syntax and precedence</h2>
+    <p>Built from a small set of forms, each denoting a language <span class="mono">L(s)</span>:</p>
+    <table class="data" style="text-align:left;">
+      <tr><th>Form</th><th>Meaning</th></tr>
+      <tr><td>ε</td><td>The language containing only the empty string</td></tr>
+      <tr><td>a</td><td>The language containing only the single-character string "a"</td></tr>
+      <tr><td>s t (concatenation)</td><td>All strings formed by a string from L(s) followed by a string from L(t)</td></tr>
+      <tr><td>s | t (alternative)</td><td>The union of L(s) and L(t)</td></tr>
+      <tr><td>s* (Kleene star)</td><td>Zero or more concatenated repetitions of strings from L(s)</td></tr>
+    </table>
+    <div class="rule-box">
+<span class="label">Precedence, tightest to loosest</span>
+*   binds tightest
+concatenation   binds next
+|   binds loosest
+
+<span class="cm">so  a|ab*  parses as  a | (a(b*))  — NOT  (a|a)(b*)</span>
+    </div>
+    <p>Parentheses override this whenever the grouping isn't what you want. The
+    <span class="mono">|</span> operator is associative and commutative; concatenation is
+    associative and distributes over <span class="mono">|</span>.</p>
+  </div>
+
+  <div class="section">
+    <h2>The derivation relation — proving a string is in L(s)</h2>
+    <p>Membership isn't just eyeballed — it's proved by a chain of rewrite steps, written with
+    a double arrow <span class="mono">⇒</span>. Each step rewrites part of the regular
+    expression into a literal character, until nothing but characters remain.</p>
+    <div class="rule-box">
+<span class="label">Worked example</span>
+Show ab ∈ L(a*b*):
+
+  a*b*  ⇒  ab*      <span class="cm">(a* derives "a" — one repetition)</span>
+        ⇒  ab       <span class="cm">(b* derives "b" — one repetition)</span>
+
+<span class="cm">Two derivation steps, so ab ⇒* ab, i.e. ab ∈ L(a*b*).</span>
+    </div>
+    <p><strong>Practical task this sets up:</strong> given a regex and a candidate string,
+    exhibit the specific derivation chain — not just an intuitive "yes it matches."</p>
+  </div>
+
+  <div class="section">
+    <h2>Algebraic identities</h2>
+    <p>Because <span class="mono">|</span> and concatenation have algebraic structure (a bit
+    like + and × for numbers), regexes can be simplified or proven equivalent purely
+    symbolically, without ever building an automaton:</p>
+    <ul class="plain">
+      <li><span class="mono">s | t  =  t | s</span> — commutative</li>
+      <li><span class="mono">(s | t) | u  =  s | (t | u)</span> — associative</li>
+      <li><span class="mono">s(t | u)  =  st | su</span> — concatenation distributes over <span class="mono">|</span></li>
+      <li><span class="mono">s** = s*</span>, <span class="mono">ε* = ε</span>, <span class="mono">s ε = εs = s</span> — common simplifications</li>
+    </ul>
+    <p><strong>Practical task:</strong> prove two differently-written regexes describe the same
+    language using only these identities — no automaton construction needed.</p>
+  </div>
+
+  <div class="section">
+    <h2>Shorthands</h2>
+    <table class="data" style="text-align:left;">
+      <tr><th>Shorthand</th><th>Expands to</th><th>Meaning</th></tr>
+      <tr><td class="mono">[abc]</td><td class="mono">a|b|c</td><td>any one of the listed characters</td></tr>
+      <tr><td class="mono">[a-z]</td><td class="mono">a|b|...|z</td><td>any character in the interval</td></tr>
+      <tr><td class="mono">s+</td><td class="mono">ss*</td><td>one or more repetitions</td></tr>
+      <tr><td class="mono">s?</td><td class="mono">s|ε</td><td>zero or one occurrence</td></tr>
+    </table>
+    <div class="callout warn">
+      <span class="label">Worth remembering</span>
+      Shorthands add zero expressive power — they're pure convenience. But naive expansion of
+      nested <span class="mono">+</span> can blow up <em>exponentially</em>: if
+      <span class="mono">+</span> is nested n deep, full expansion yields 2ⁿ copies of the
+      innermost expression. This is exactly why §1.3.1 bothers to give optimised NFA
+      constructions for shorthands instead of just expanding them first — see the
+      <a href="nfa.html">NFA page</a>.
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Writing regexes for real tokens</h2>
+    <p>The mechanical part is easy; getting the edge cases right is where it's easy to lose
+    marks. Floats are the classic trap:</p>
+    <div class="rule-box">
+<span class="label">Why floats are fiddly</span>
+A float has an optional sign, a mantissa, and an optional exponent — but the exponent
+is only truly optional if the mantissa HAS a decimal point:
+
+  3.14      <span class="cm">// valid float, no exponent</span>
+  3e10      <span class="cm">// this should be an INTEGER's territory, not a float — ambiguous
+             //   unless the grammar for floats requires a decimal point when there's
+             //   no exponent</span>
+  3.14e10   <span class="cm">// valid float, with exponent</span>
+
+<span class="cm">One common simplification: let the float regex also match plain integers,
+and disambiguate integer-vs-float by a different mechanism entirely (see §1.8,
+the "combined DFA with priority" trick, covered on the Lexers page).</span>
+    </div>
+    <p><strong>Practical task:</strong> given an informal token description (e.g. "an
+    identifier is letters, digits, and underscores, but can't start with a digit"), produce the
+    exact regex — including the boundary cases a sloppy first draft misses.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="lex-index.html">← Index</a>
+    <a href="nfa.html">Next: Regex → NFA →</a>
+  </div>
+
+</div>
+</body>
+</html>

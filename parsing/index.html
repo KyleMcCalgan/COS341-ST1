@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parser Construction Reference — LL(1) vs SLR</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Parser Construction<small>COS341 · Topic-Area 2</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="index.html" class="active">Parsing Index</a>
+      <a href="ll1.html">LL(1)</a>
+      <a href="slr.html">SLR</a>
+      <a href="compare.html">Compare</a>
+      <a href="ll1-walkthrough.html">LL(1) Walkthrough</a>
+      <a href="slr-walkthrough.html">SLR Walkthrough</a>
+      <a href="ll0.html">On "LL(0)"</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+  <span class="kicker shared">Test Prep · Topic-Area 2</span>
+  <h1 class="page-title">Two ways to build a parser from a CFG</h1>
+  <p class="subtitle">
+    Everything below works from the same idea: a context-free grammar doesn't tell you, by
+    itself, which production to apply next. Both parser families solve that by pre-computing
+    static properties of the grammar (Nullable, FIRST, FOLLOW, and for SLR, LR(0) items) and
+    baking the result into a table. Where they differ is <em>how</em> they read the input and
+    <em>what</em> the table is indexed by. This site walks both pipelines step by step, in the
+    same style, using the same running example grammar, so the two can be compared directly.
+  </p>
+
+  <div class="callout">
+    <strong>Running example throughout:</strong>
+    <span class="mono">Grammar 2.9</span> — <span class="mono">T → R</span>,
+    <span class="mono">T → aTc</span>, <span class="mono">R → ε</span>,
+    <span class="mono">R → bR</span>. It's small enough to hand-compute fully, and the
+    textbook uses it for <em>both</em> the LL(1) table and the SLR table, which makes it the
+    cleanest way to see the two constructions diverge from identical raw material.
+  </div>
+
+  <div class="section">
+    <h2>Where to start</h2>
+    <div class="card-grid">
+      <a class="nav-card ll1" href="ll1.html">
+        <h3>LL(1) — Top-Down</h3>
+        <p>Predictive parsing: Nullable → FIRST → FOLLOW → per-rule lookahead → table
+        indexed by <span class="mono">(nonterminal, symbol)</span>. Full 7-step construction
+        plus recursive-descent and table-driven implementations.</p>
+        <span class="tag">§2.6 – 2.12.3</span>
+      </a>
+      <a class="nav-card slr" href="slr.html">
+        <h3>SLR — Bottom-Up</h3>
+        <p>Shift-reduce parsing: LR(0) items → CLOSURE/GOTO automaton → FOLLOW-based reduce
+        actions → table indexed by <span class="mono">(DFA state, symbol)</span>. Covers both
+        the textbook's NFA route and the Aho/Sethi/Ullman items route.</p>
+        <span class="tag">§2.13 – 2.15</span>
+      </a>
+      <a class="nav-card shared" href="compare.html">
+        <h3>Side-by-Side Comparison</h3>
+        <p>Same grammar, two tables. What each method can and can't handle (left-recursion,
+        ambiguity), what the stack holds, and what "stuck" looks like in each.</p>
+        <span class="tag">synthesis</span>
+      </a>
+      <a class="nav-card shared" href="ll0.html">
+        <h3>A Note on "LL(0)"</h3>
+        <p>Not in the textbook, and for good reason — here's what zero lookahead would actually
+        mean, and why the field jumps straight to LL(1).</p>
+        <span class="tag">clarification</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Interactive — click through it yourself</h2>
+    <div class="card-grid">
+      <a class="nav-card ll1" href="ll1-walkthrough.html">
+        <h3>LL(1) Walkthrough</h3>
+        <p>Build the LL(1) table one production at a time (with the exact rule that fills each
+        cell), then run the finished table on a real string — one parsing action per click,
+        full trace history included.</p>
+        <span class="tag">interactive</span>
+      </a>
+      <a class="nav-card slr" href="slr-walkthrough.html">
+        <h3>SLR Walkthrough</h3>
+        <p>Run the finished SLR table on the same string, one shift/reduce action per click —
+        see exactly where bottom-up parsing commits differently from top-down.</p>
+        <span class="tag">interactive</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Quick orientation</h2>
+    <table class="compare-table">
+      <tr><th>&nbsp;</th><th class="ll1col">LL(1)</th><th class="slrcol">SLR</th></tr>
+      <tr><td class="feature">Derivation direction</td><td>Top-down, leftmost derivation</td><td>Bottom-up, rightmost derivation (in reverse)</td></tr>
+      <tr><td class="feature">Table indexed by</td><td>Nonterminal × next terminal</td><td>DFA state × next terminal / nonterminal</td></tr>
+      <tr><td class="feature">Static properties needed</td><td>Nullable, FIRST, FOLLOW</td><td>LR(0) items (via CLOSURE/GOTO), FOLLOW</td></tr>
+      <tr><td class="feature">Handles left-recursion?</td><td>No — must rewrite the grammar first</td><td>Yes, natively</td></tr>
+      <tr><td class="feature">Conflict types</td><td>One nonterminal, ≥2 valid productions on one symbol</td><td>Shift-reduce, reduce-reduce</td></tr>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">Scope reminder</span>
+    Topic-Area 2 explicitly lists "Ambiguity, Parsing and Parser-Construction" — that covers
+    both families in full, plus the grammar-rewriting steps (left-recursion elimination, left
+    factorisation) that feed into LL(1), and precedence-based conflict resolution that feeds
+    into SLR.
+  </div>
+</div>
+</body>
+</html>

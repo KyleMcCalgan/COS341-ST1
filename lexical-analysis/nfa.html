@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regex → NFA Construction</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Lexical Analysis<small>COS341 · Topic-Area 1</small></div>
+    <nav class="topnav">
+      <a href="../index.html">Course Index</a>
+      <a href="lex-index.html">Lexical Index</a>
+      <a href="regex.html">Regex</a>
+      <a href="nfa.html" class="active">NFA</a>
+      <a href="dfa-subset.html">DFA</a>
+      <a href="minimization.html">Minimization</a>
+      <a href="lexers.html">Lexers</a>
+      <a href="properties.html">Properties</a>
+      <a href="subset-construction-walkthrough.html">Subset Walkthrough</a>
+      <a href="minimization-walkthrough.html">Minimization Walkthrough</a>
+      <a href="lexing-walkthrough.html">Lexing Walkthrough</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <span class="kicker lex">Regex → NFA</span>
+  <h1 class="page-title">Nondeterministic Finite Automata</h1>
+  <p class="subtitle">
+    An NFA is the stepping stone between a regex and something executable. It's allowed to be
+    "wasteful" — multiple valid transitions from one state, ε-transitions that cost nothing to
+    follow — because we're about to convert it into something deterministic anyway.
+  </p>
+
+  <div class="section">
+    <h2>What makes it nondeterministic</h2>
+    <div class="rule-box">
+<span class="label">Definition 1.1 (paraphrased)</span>
+An NFA is: a finite set of states S, one start state s0 ∈ S, a subset F ⊆ S of accepting
+states, and a set of transitions T. Each transition connects two states and is labelled
+either by an alphabet character, or by ε (an epsilon-transition — free to follow, consumes
+no input).
+    </div>
+    <p>A string is accepted if <strong>some</strong> sequence of choices — regular transitions
+    and ε-transitions mixed freely — reads the whole string and ends on an accepting state.
+    Other choices might dead-end; that doesn't matter, only one successful path needs to
+    exist.</p>
+    <p><strong>Practical task:</strong> given a small NFA and a string, trace (or rule out) an
+    accepting path — this is different from "run the automaton," since you may need to try more
+    than one branch before finding the one that works, or before concluding none does.</p>
+  </div>
+
+  <div class="section">
+    <h2>Building an NFA from a regex — fragment by fragment</h2>
+    <p>The construction is compositional: build a small NFA <strong>fragment</strong> for each
+    piece of the regex, each with exactly one dangling entry point and one dangling exit point,
+    then wire fragments together following the regex's own structure. The final fragment's exit
+    gets wired to one single accepting state.</p>
+
+    <table class="data" style="text-align:left;">
+      <tr><th>Regex form</th><th>Fragment shape</th></tr>
+      <tr><td class="mono">a</td><td>entry --a--> exit (one transition, labelled a)</td></tr>
+      <tr><td class="mono">s t</td><td>entry --[fragment s]--> --[fragment t]--> exit (chain them: s's exit becomes t's entry)</td></tr>
+      <tr><td class="mono">s | t</td><td>a new entry ε-branches into both fragment s and fragment t; both exits ε-join into a new exit</td></tr>
+      <tr><td class="mono">s*</td><td>a new entry/loop-point ε-branches either straight to a new exit (zero repetitions), or into fragment s, whose exit ε-loops back to the same loop-point</td></tr>
+    </table>
+
+    <p>This is exactly the general construction — expanding every shorthand
+    (<span class="mono">+</span>, <span class="mono">?</span>, character sets) into raw
+    <span class="mono">*</span>/<span class="mono">|</span> first works, but §1.3.1 gives
+    optimised direct fragments for these instead, since expanding a deeply-nested
+    <span class="mono">+</span> can blow the NFA up exponentially before you even get to the
+    DFA stage.</p>
+  </div>
+
+  <div class="section">
+    <h2>Worked in full: (a|b)*ac</h2>
+    <p>This is the textbook's own example (Fig. 1.5) — 8 states, numbered for reference. It'll
+    stay the running example through the <a href="dfa-subset.html">DFA</a> and
+    <a href="minimization.html">minimization</a> pages too, so the whole pipeline chains
+    together on one automaton.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 640 420" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrN" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L8,3 z" fill="#8a8f99"/>
+          </marker>
+        </defs>
+        <!-- entry arrow -->
+        <path class="edge" d="M10,300 L55,300" marker-end="url(#arrN)"/>
+
+        <!-- edges -->
+        <path class="edge" d="M85,300 L205,300" marker-end="url(#arrN)"/> <!-- 1->2 eps -->
+        <path class="edge" d="M255,300 L365,300" marker-end="url(#arrN)"/> <!-- 2->3 a -->
+        <path class="edge" d="M415,300 L525,300" marker-end="url(#arrN)"/> <!-- 3->4 c -->
+
+        <path class="edge" d="M60,278 C 80,180 110,140 135,128" marker-end="url(#arrN)"/> <!-- 1->5 eps -->
+        <path class="edge" d="M172,105 C 210,75 240,65 258,62" marker-end="url(#arrN)"/> <!-- 5->6 eps -->
+        <path class="edge" d="M172,140 C 210,165 240,175 258,178" marker-end="url(#arrN)"/> <!-- 5->7 eps -->
+        <path class="edge" d="M308,60 C 350,55 380,75 398,105" marker-end="url(#arrN)"/> <!-- 6->8 a -->
+        <path class="edge" d="M308,182 C 350,190 380,165 398,135" marker-end="url(#arrN)"/> <!-- 7->8 b -->
+        <path class="edge" d="M436,96 C 520,15 460,10 340,12 C 200,14 90,20 62,272" marker-end="url(#arrN)"/> <!-- 8->1 eps loop, routed along the top -->
+
+        <!-- states -->
+        <circle class="state" cx="70" cy="300" r="26"/>
+        <text class="statelbl" x="70" y="306">1</text>
+
+        <circle class="state" cx="230" cy="300" r="26"/>
+        <text class="statelbl" x="230" y="306">2</text>
+
+        <circle class="state" cx="390" cy="300" r="26"/>
+        <text class="statelbl" x="390" y="306">3</text>
+
+        <circle class="state accept" cx="550" cy="300" r="26"/>
+        <circle class="state" cx="550" cy="300" r="20" fill="none"/>
+        <text class="statelbl" x="550" y="306">4</text>
+
+        <circle class="state" cx="152" cy="115" r="24"/>
+        <text class="statelbl" x="152" y="121">5</text>
+
+        <circle class="state" cx="285" cy="50" r="24"/>
+        <text class="statelbl" x="285" y="56">6</text>
+
+        <circle class="state" cx="285" cy="190" r="24"/>
+        <text class="statelbl" x="285" y="196">7</text>
+
+        <circle class="state" cx="418" cy="118" r="24"/>
+        <text class="statelbl" x="418" y="124">8</text>
+
+        <!-- labels -->
+        <text class="edgelbl" x="145" y="290">ε</text>
+        <text class="edgelbl" x="305" y="290">a</text>
+        <text class="edgelbl" x="465" y="290">c</text>
+        <text class="edgelbl" x="90" y="195">ε</text>
+        <text class="edgelbl" x="215" y="68">ε</text>
+        <text class="edgelbl" x="215" y="200">ε</text>
+        <text class="edgelbl" x="358" y="65">a</text>
+        <text class="edgelbl" x="358" y="205">b</text>
+        <text class="edgelbl" x="340" y="30">ε (loop back to 1)</text>
+      </svg>
+      <figcaption>NFA for (a|b)*ac. State 1 is the loop point for the star: ε to 5 enters
+      another (a|b) iteration, and state 8 ε-loops back to 1 along the top path. State 1 also
+      ε-continues directly to 2, which is the "exit the star, move on to ac" path.</figcaption>
+    </div>
+
+    <table class="data">
+      <tr><th>State</th><th>Transitions</th></tr>
+      <tr><td>1</td><td class="hl">ε → 5, ε → 2</td></tr>
+      <tr><td>2</td><td class="hl">a → 3</td></tr>
+      <tr><td>3</td><td class="hl">c → 4 (accept)</td></tr>
+      <tr><td>5</td><td class="hl">ε → 6, ε → 7</td></tr>
+      <tr><td>6</td><td class="hl">a → 8</td></tr>
+      <tr><td>7</td><td class="hl">b → 8</td></tr>
+      <tr><td>8</td><td class="hl">ε → 1</td></tr>
+    </table>
+    <p style="font-size:0.85rem; color:var(--ink-soft);">This exact transition table is what the
+    <a href="dfa-subset.html">subset construction</a> operates on next.</p>
+  </div>
+
+  <div class="footer-nav">
+    <a href="regex.html">← Regular Expressions</a>
+    <a href="dfa-subset.html">Next: NFA → DFA →</a>
+  </div>
+
+</div>
+</body>
+</html>
