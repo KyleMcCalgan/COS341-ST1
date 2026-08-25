@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Homework 2 — SLR Parsing Walkthrough</title>
+<title>Homework 3 — SLR Parsing Walkthrough</title>
 <link rel="stylesheet" href="../style.css">
 </head>
 <body>
 <div class="topbar"><div class="topbar-inner">
-  <div class="brand">Homework 2<small>COS341 · SLR Parsing</small></div>
+  <div class="brand">Homework 3<small>COS341 · SLR Parsing</small></div>
   <nav class="topnav"><a href="../index.html">Course Index</a><a href="../parsing/index.html">Parsing</a><a href="../parsing/slr-walkthrough.html">SLR Walkthrough</a><a href="index.html" class="active">Homework</a></nav>
 </div></div>
 
 <div class="wrap">
-  <span class="kicker slr">Homework 2 · Bottom-Up Parsing</span>
+  <span class="kicker slr">Homework 3 · Bottom-Up Parsing</span>
   <h1 class="page-title">Constructing the SLR table, then running it</h1>
   <p class="subtitle">Given the homework grammar, construct every LR(0) item set using CLOSURE and GOTO, read the control DFA, fill the SLR ACTION/GOTO table, and use that finished table to parse <span class="mono">((n+n)*n)</span>.</p>
 
@@ -98,7 +98,7 @@ I10 = { T→(T*T)• }       completed rule 3: reduce on FOLLOW(T)</div>
   <div class="section"><h2>Part 3 — Read the control DFA from the item-set GOTO edges</h2>
     <p>Each item set becomes one DFA state; each GOTO calculation becomes a labelled edge. Terminal edges become shifts and the nonterminal edges become parser GOTO entries.</p>
     <figure class="diagram"><svg viewBox="0 0 1100 780" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dfa-title dfa-desc">
-      <title id="dfa-title">Complete control DFA for Homework 2 grammar</title><desc id="dfa-desc">All DFA transitions are drawn. The main construction progresses from left to right. Return transitions on n use two upper routing lanes and return transitions on opening parenthesis use two lower routing lanes.</desc>
+      <title id="dfa-title">Complete control DFA for Homework 3 grammar</title><desc id="dfa-desc">All DFA transitions are drawn. The main construction progresses from left to right. Return transitions on n use two upper routing lanes and return transitions on opening parenthesis use two lower routing lanes.</desc>
       <defs><marker id="a" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3z" fill="#8a8f99"/></marker></defs><style>.e{fill:none;stroke:#8a8f99;stroke-width:1.7;marker-end:url(#a)}.s{fill:#fff;stroke:#c1780f;stroke-width:2}.f{fill:none;stroke:#c1780f;stroke-width:1.3}.t{font-family:'IBM Plex Mono',monospace;fill:#28313b;text-anchor:middle;font-size:14px}.l{font-family:'IBM Plex Mono',monospace;fill:#5a6470;text-anchor:middle;font-size:12px}.hint{font-family:'Inter',sans-serif;fill:#8a5a00;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}</style>
       <text class="hint" x="55" y="32">Forward construction edges</text><text class="hint" x="55" y="55">Upper lanes: n returns to I2 · lower lanes: ( returns to I3</text>
       <path class="e" d="M28 360L74 360"/><text class="l" x="51" y="342">start</text><path class="e" d="M122 338Q190 135 296 92"/><text class="l" x="195" y="170">T</text><path class="e" d="M132 360L296 360"/><text class="l" x="214" y="349">n</text><path class="e" d="M122 382Q190 505 296 480"/><text class="l" x="188" y="460">(</text><path class="e" d="M344 480L484 480"/><text class="l" x="414" y="468">T</text><path class="e" d="M536 462Q605 405 664 393"/><text class="l" x="600" y="425">+</text><path class="e" d="M536 500Q605 555 664 570"/><text class="l" x="602" y="550">*</text><path class="e" d="M716 385L834 385"/><text class="l" x="775" y="374">T</text><path class="e" d="M716 575L834 575"/><text class="l" x="775" y="564">T</text><path class="e" d="M884 373Q946 322 1006 300"/><text class="l" x="945" y="334">)</text><path class="e" d="M884 575L1004 575"/><text class="l" x="944" y="564">)</text>
@@ -120,6 +120,25 @@ I10 = { T→(T*T)• }       completed rule 3: reduce on FOLLOW(T)</div>
 For each nonterminal edge i —T→ j:       GOTO[i,T] = j
 For completed T→α• (rule p) in state i:  ACTION[i,x] = reduce p for every x in FOLLOW(T)
 For completed T′→T•:                      ACTION[i,$] = accept</div>
+    <div class="callout"><span class="label">Concrete example: completed rule 1 in state 2</span>
+      State 2 contains the completed item <span class="mono">T→n•</span>. This is rule 1, so
+      <span class="mono">p=1</span>. The dot at the end says the parser has already recognised
+      one complete <span class="mono">T</span> in the form of <span class="mono">n</span>. It may now
+      replace that <span class="mono">n</span> on the stack with <span class="mono">T</span>—but only
+      if the next input token can legally follow a T.
+      <div class="rule-box">FOLLOW(T) = { +, *, ), $ }
+
+For x=+:  ACTION[2,+] = r1       For x=* : ACTION[2,*] = r1
+For x=):  ACTION[2,)] = r1       For x=$ : ACTION[2,$] = r1
+
+r1 means: reduce by rule 1, T→n.</div>
+      <p>For example, after reading <span class="mono">n</span> from input
+      <span class="mono">n+n$</span>, the parser is in state 2 and the lookahead is
+      <span class="mono">+</span>. It looks up <span class="mono">ACTION[2,+]</span>, finds
+      <span class="mono">r1</span>, and reduces <span class="mono">n</span> to
+      <span class="mono">T</span>. It does <strong>not</strong> consume the <span class="mono">+</span>:
+      the plus is only evidence that the completed T may be reduced now.</p>
+    </div>
     <table class="data" style="text-align:left;"><tr><th>State</th><th>Terminal edges → ACTION</th><th>Nonterminal edges → GOTO</th><th>Completed item → reduce / accept</th></tr>
       <tr><td>0</td><td>ACTION[0,n]=s2; ACTION[0,(]=s3</td><td>GOTO[0,T]=1</td><td>—</td></tr><tr><td>1</td><td>—</td><td>—</td><td>ACTION[1,$]=accept</td></tr><tr><td>2</td><td>—</td><td>—</td><td>T→n• gives r1 under +, *, ), $</td></tr><tr><td>3</td><td>ACTION[3,n]=s2; ACTION[3,(]=s3</td><td>GOTO[3,T]=4</td><td>—</td></tr><tr><td>4</td><td>ACTION[4,+]=s5; ACTION[4,*]=s6</td><td>—</td><td>—</td></tr><tr><td>5</td><td>ACTION[5,n]=s2; ACTION[5,(]=s3</td><td>GOTO[5,T]=7</td><td>—</td></tr><tr><td>6</td><td>ACTION[6,n]=s2; ACTION[6,(]=s3</td><td>GOTO[6,T]=8</td><td>—</td></tr><tr><td>7</td><td>ACTION[7,)]=s9</td><td>—</td><td>—</td></tr><tr><td>8</td><td>ACTION[8,)]=s10</td><td>—</td><td>—</td></tr><tr><td>9</td><td>—</td><td>—</td><td>T→(T+T)• gives r2 under +, *, ), $</td></tr><tr><td>10</td><td>—</td><td>—</td><td>T→(T*T)• gives r3 under +, *, ), $</td></tr>
     </table>
@@ -148,7 +167,34 @@ The input pointer advances exactly one token. The next cycle uses state 3 with (
     </table></div>
     <p>The parser accepts: the entire input has been reduced to the start symbol <span class="mono">T</span>, and the completed augmented item reaches state 1 under end-of-input.</p>
   </div>
-  <div class="section"><h2>What this shows</h2><ul class="plain"><li>LL(1) fails at the opening parenthesis because both compound productions have the same initial terminal.</li><li>The SLR DFA keeps both possibilities alive in I3 and distinguishes them only in I4, after the left <span class="mono">T</span> is complete and the operator is visible.</li><li>Every reduction is restricted by FOLLOW(T), and the completed-item states do not collide with a shift. That is why the SLR table has no conflicts.</li></ul></div>
+  <div class="section"><h2>Part 6 — Homework 3(b): make an LL(1) grammar for the same language</h2>
+    <p>The original grammar is not LL(1) because the two parenthesised rules begin with the same terminal <span class="mono">(</span>. We do not need to change the language; we only need to delay the choice between <span class="mono">+</span> and <span class="mono">*</span> until after the first subexpression has been read.</p>
+    <div class="rule-box"><span class="label">The new grammar G′ — exactly four productions</span>
+1. T → n
+2. T → ( T O T )
+3. O → +
+4. O → *</div>
+    <h3>Step 1: where G′ comes from</h3>
+    <div class="rule-box">Original pair:
+T → ( T + T )
+T → ( T * T )
+
+Common prefix:  ( T
+Different choice: + or *
+Common suffix:  T )
+
+Factor the choice into a new nonterminal O:
+T → ( T O T )
+O → + | *</div>
+    <p>Choosing <span class="mono">O→+</span> recreates <span class="mono">T→(T+T)</span>; choosing <span class="mono">O→*</span> recreates <span class="mono">T→(T*T)</span>. Together with <span class="mono">T→n</span>, G′ therefore generates exactly the same strings as G.</p>
+    <h3>Step 2: prove that G′ is LL(1)</h3>
+    <table class="data" style="text-align:left;"><tr><th>Nonterminal</th><th>Productions</th><th>FIRST sets of the alternatives</th><th>Why there is no conflict</th></tr>
+      <tr><td>T</td><td><span class="mono">T→n</span><br><span class="mono">T→(T O T)</span></td><td><span class="mono">{n}</span><br><span class="mono">{(}</span></td><td>The sets are disjoint: the lookahead is either <span class="mono">n</span> or <span class="mono">(</span>, never both.</td></tr>
+      <tr><td>O</td><td><span class="mono">O→+</span><br><span class="mono">O→*</span></td><td><span class="mono">{+}</span><br><span class="mono">{*}</span></td><td>The sets are disjoint: the operator itself selects one rule.</td></tr>
+    </table>
+    <div class="callout"><span class="label">Conclusion</span>Every nonterminal in G′ has alternatives with non-overlapping FIRST sets, and there are no ε-productions requiring a FOLLOW-set exception. The predictive parser can therefore select one production from one lookahead token: <strong>G′ is LL(1).</strong></div>
+  </div>
+  <div class="section"><h2>What this shows</h2><ul class="plain"><li>LL(1) fails at the opening parenthesis in G because both compound productions have the same initial terminal.</li><li>The SLR DFA keeps both possibilities alive in I3 and distinguishes them only in I4, after the left <span class="mono">T</span> is complete and the operator is visible.</li><li>Part 6 shows the LL(1) alternative: left-factor that same shared prefix and let O choose the operator.</li></ul></div>
   <div class="footer-nav"><a href="gotos-to-dfa-walkthrough.html">← GOTOs to DFA Walkthrough</a><a href="index.html">Homework Index →</a></div>
 </div>
 <script src="../nav.js"></script>
