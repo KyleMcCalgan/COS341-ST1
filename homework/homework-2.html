@@ -151,5 +151,6 @@ The input pointer advances exactly one token. The next cycle uses state 3 with (
   <div class="section"><h2>What this shows</h2><ul class="plain"><li>LL(1) fails at the opening parenthesis because both compound productions have the same initial terminal.</li><li>The SLR DFA keeps both possibilities alive in I3 and distinguishes them only in I4, after the left <span class="mono">T</span> is complete and the operator is visible.</li><li>Every reduction is restricted by FOLLOW(T), and the completed-item states do not collide with a shift. That is why the SLR table has no conflicts.</li></ul></div>
   <div class="footer-nav"><a href="gotos-to-dfa-walkthrough.html">← GOTOs to DFA Walkthrough</a><a href="index.html">Homework Index →</a></div>
 </div>
+<script src="../nav.js"></script>
 </body>
 </html>
