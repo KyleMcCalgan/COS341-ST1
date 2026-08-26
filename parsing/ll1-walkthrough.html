@@ -37,7 +37,64 @@
   </p>
 
   <div class="section">
-    <h2>Part 1 — Derive the Look-Ahead Set for each rule</h2>
+    <h2>Part 0 — Augment the grammar with the end marker</h2>
+    <p>Before calculating any set, add one new start production. The end marker <span class="mono">$</span> is a real terminal in this augmented construction: it records where a complete derivation must stop.</p>
+    <div class="rule-box"><span class="label">Augmented start production</span>
+0. T′ → T $
+
+T′ is a new start symbol. The old start symbol T is followed by $, so $ is added to FOLLOW(T).</div>
+    <p>This is the concrete source of the end marker—not a fact to memorise. The ordinary predictive-parser stack still begins with <span class="mono">T $</span>; the added production makes that boundary explicit while deriving the sets.</p>
+  </div>
+
+  <div class="section">
+    <h2>Part 1 — Examine the CFG before building any table</h2>
+    <p>Everything that follows depends on three fixed sets. Do not guess them from the finished table: read each production, add only what that production permits, and repeat until a full pass adds nothing new. In this walkthrough, <span class="mono">FIRST</span> lists terminals only; whether a nonterminal can disappear is recorded separately by <span class="mono">Nullable</span>.</p>
+    <div class="rule-box">0. T′ → T $                 (augmentation)
+1. T → R
+2. T → a T c
+3. R → ε
+4. R → b R
+
+Start symbol: T
+Terminals: a, b, c, $
+Nonterminals: T′, T, R</div>
+    <h3>1.1 Derive Nullable by fixed-point passes</h3>
+    <p>A nonterminal is Nullable when it can derive the empty string. An explicit <span class="mono">ε</span> rule makes its left-hand side Nullable immediately; a rule made entirely from Nullable nonterminals can then make another left-hand side Nullable.</p>
+    <table class="data" style="text-align:left;"><tr><th>Pass</th><th>Production examined</th><th>What it tells us</th><th>Nullable set after this pass</th></tr>
+      <tr><td>Start</td><td>—</td><td>No fact has been proved yet.</td><td><span class="mono">∅</span></td></tr><tr><td>1</td><td><span class="mono">R→ε</span></td><td>The RHS is empty, so R can vanish. Add R.</td><td><span class="mono">{R}</span></td></tr><tr><td>2</td><td><span class="mono">T→R</span></td><td>The entire RHS is the already-Nullable nonterminal R. Therefore T can also vanish. Add T.</td><td><span class="mono">{R,T}</span></td></tr><tr><td>3</td><td><span class="mono">T→aTc</span>, <span class="mono">R→bR</span></td><td>Each RHS contains a terminal, so neither can derive ε. Nothing is added.</td><td><span class="mono">{R,T}</span> (fixed)</td></tr>
+    </table>
+    <div class="callout"><span class="label">Nullable result</span><span class="mono">Nullable(R)=true</span> and <span class="mono">Nullable(T)=true</span>. This is why FOLLOW will later matter for rules <span class="mono">T→R</span> and <span class="mono">R→ε</span>.</div>
+    <h3>1.2 Derive FIRST by fixed-point passes</h3>
+    <p><span class="mono">FIRST(N)</span> contains terminals that can be the first visible token of a string derived from N. Read each RHS left to right: a leading terminal is added directly; a leading nonterminal contributes its already-known FIRST set. The ε-rule gives no terminal here—it is captured by Nullable(R).</p>
+    <table class="data" style="text-align:left;"><tr><th>Pass</th><th>Production examined</th><th>Contribution</th><th>FIRST sets so far</th></tr>
+      <tr><td>1</td><td><span class="mono">R→bR</span></td><td>The first symbol is terminal b. Add b to FIRST(R).</td><td><span class="mono">FIRST(R)={b}</span>; <span class="mono">FIRST(T)=∅</span></td></tr><tr><td>1</td><td><span class="mono">T→aTc</span></td><td>The first symbol is terminal a. Add a to FIRST(T).</td><td><span class="mono">FIRST(R)={b}</span>; <span class="mono">FIRST(T)={a}</span></td></tr><tr><td>2</td><td><span class="mono">T→R</span></td><td>R is first, so copy FIRST(R)={b} into FIRST(T).</td><td><span class="mono">FIRST(R)={b}</span>; <span class="mono">FIRST(T)={a,b}</span></td></tr><tr><td>3</td><td>all rules again</td><td>No new terminal can begin any RHS.</td><td>fixed</td></tr>
+    </table>
+    <div class="callout"><span class="label">FIRST result</span><span class="mono">FIRST(R)={b}</span> and <span class="mono">FIRST(T)={a,b}</span>. For a sequence, the first terminal still wins: <span class="mono">FIRST(aTc)={a}</span> and <span class="mono">FIRST(bR)={b}</span>.</div>
+    <h3>1.3 Derive FOLLOW by fixed-point passes</h3>
+    <p><span class="mono">FOLLOW(N)</span> contains terminals that may appear immediately after N in a sentential form. Seed the start symbol with <span class="mono">$</span>. Then inspect every occurrence of a nonterminal on a RHS: copy FIRST of what follows it; if nothing follows (or the remainder can vanish), copy FOLLOW of the production's left-hand side.</p>
+    <table class="data" style="text-align:left;"><tr><th>Pass</th><th>Occurrence examined</th><th>Rule applied</th><th>Contribution</th></tr>
+      <tr><td>Seed</td><td><span class="mono">T′→T $</span></td><td>T is immediately followed by terminal $. Add that terminal to FOLLOW(T).</td><td><span class="mono">$ ∈ FOLLOW(T)</span></td></tr><tr><td>1</td><td><span class="mono">T→a T c</span></td><td>The T on the RHS is immediately followed by terminal c.</td><td><span class="mono">c ∈ FOLLOW(T)</span></td></tr><tr><td>2</td><td><span class="mono">T→R</span></td><td>R is at the end of the RHS, so copy FOLLOW(T) into FOLLOW(R).</td><td><span class="mono">FOLLOW(R)={c,$}</span></td></tr><tr><td>3</td><td><span class="mono">R→bR</span></td><td>The final R copies FOLLOW(R) to itself.</td><td>No new symbol.</td></tr>
+    </table>
+    <div class="callout"><span class="label">FOLLOW result</span><span class="mono">FOLLOW(T)=FOLLOW(R)={c,$}</span>. The `$` enters FOLLOW(T) directly from <span class="mono">T′→T$</span>, then reaches FOLLOW(R) through <span class="mono">T→R</span>. The `c` comes from the T occurrence in <span class="mono">T→aTc</span>.</div>
+    <h3>1.4 Record the three completed sets separately</h3>
+    <p>These are properties of nonterminals, not productions. Keep them in their own
+    nonterminal-based tables; the production-based Look-Ahead table begins in Part 2.</p>
+    <table class="data"><tr><th>Nonterminal</th><th>Nullable?</th><th>Reason</th></tr>
+      <tr><td>T</td><td>true</td><td><span class="mono">T→R</span> and <span class="mono">R→ε</span></td></tr>
+      <tr><td>R</td><td>true</td><td><span class="mono">R→ε</span></td></tr>
+    </table>
+    <table class="data"><tr><th>Nonterminal</th><th>FIRST</th><th>Where the terminals come from</th></tr>
+      <tr><td>T</td><td><span class="mono">{a,b}</span></td><td><span class="mono">a</span> from <span class="mono">T→aTc</span>; <span class="mono">b</span> copied through <span class="mono">T→R</span>.</td></tr>
+      <tr><td>R</td><td><span class="mono">{b}</span></td><td><span class="mono">b</span> from <span class="mono">R→bR</span>.</td></tr>
+    </table>
+    <table class="data"><tr><th>Nonterminal</th><th>FOLLOW</th><th>Where the terminals come from</th></tr>
+      <tr><td>T</td><td><span class="mono">{c,$}</span></td><td><span class="mono">c</span> from <span class="mono">T→aTc</span>; <span class="mono">$</span> from <span class="mono">T′→T$</span>.</td></tr>
+      <tr><td>R</td><td><span class="mono">{c,$}</span></td><td>R ends <span class="mono">T→R</span>, so it copies FOLLOW(T).</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Part 2 — Derive the Look-Ahead Set for each rule</h2>
     <p>Before touching the table, work out one number per production: its
     <strong>Look-Ahead Set</strong> — every terminal that could legally trigger choosing that
     rule. This is exactly the quantity a homework question means when it asks
@@ -49,6 +106,18 @@
 LA(N → α)  =  FIRST(α)                      if α is not Nullable
            =  FIRST(α) ∪ FOLLOW(N)          if α is Nullable
     </div>
+
+    <div class="callout"><span class="label">First look-ahead calculation: the augmented rule</span>
+      For <span class="mono">T′→T$</span>, the RHS is <span class="mono">T$</span>. T is Nullable, so
+      a derived string may begin with a terminal from FIRST(T), <em>or</em> T may disappear and
+      expose the following <span class="mono">$</span>.
+      <div class="rule-box">FIRST(T$) = FIRST(T) ∪ {$} = {a,b} ∪ {$} = {a,b,$}
+Nullable(T$) = false              (the terminal $ cannot disappear)
+LA(T′→T$) = FIRST(T$) = {a,b,$}</div>
+      The table used in the parser run starts at T, so it has rows only for <span class="mono">T</span>
+      and <span class="mono">R</span>. This augmented-rule calculation is shown to explain the
+      boundary and the source of `$`; the ordinary four production rows below are the ones used
+      to fill that runtime table.</div>
 
     <p>Once every rule has its LA set, filling the table in Part 2 is just copying: place the
     rule in one column per symbol in its LA set. No re-deriving FIRST/FOLLOW at table-filling
@@ -108,7 +177,7 @@ LA(N → α)  =  FIRST(α)                      if α is not Nullable
   </div>
 
   <div class="section">
-    <h2>Part 2 — Fill in the table using each rule's Look-Ahead Set</h2>
+    <h2>Part 3 — Fill in the table using each rule's Look-Ahead Set</h2>
     <p>Every cell gets filled by the rule with a production that came from Part 1: place
     <span class="mono">N → α</span> in row N, column c, for every symbol c in
     <span class="mono">LA(N → α)</span>. No new derivation — just reading off what's already
@@ -154,7 +223,7 @@ LA(N → α)  =  FIRST(α)                      if α is not Nullable
   </div>
 
   <div class="section">
-    <h2>Part 3 — Using the finished table to actually parse a string</h2>
+    <h2>Part 4 — Using the finished table to actually parse a string</h2>
     <p>Now the table is complete. We parse <span class="mono">aabbbcc</span> (plus end
     marker <span class="mono">$</span>) using the stack-and-table algorithm: pop the stack top;
     if it's a terminal, match it against the input; if it's a nonterminal, look up
@@ -169,8 +238,8 @@ LA(N → α)  =  FIRST(α)                      if α is not Nullable
 
       <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:6px;">
         <div>
-          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Stack (top on the left)</div>
-          <div class="stack-chip-row" id="trace-stack"></div>
+          <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Parser stack (top → base)</div>
+          <div class="ll1-stack-visual"><div class="stack-chip-row ll1-stack-column" id="trace-stack"></div><div class="ll1-stack-base">stack base</div></div>
         </div>
         <div>
           <div style="font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--ink-soft); margin-bottom:6px;">Remaining input</div>

@@ -155,7 +155,27 @@ r1 means: reduce by rule 1, T→n.</div>
 2. Look at the first unconsumed input token: x.
 3. Look up ACTION[s,x].
 4. Carry out that one instruction, then begin again.</div>
-    <h3>The first shift, with no skipped movement</h3><div class="rule-box">Initial stack:          [ 0 ]
+    <h3>Step through every parser action</h3>
+    <div class="walk-panel" aria-live="polite">
+      <div class="stepper-head">
+        <p class="stepper-title" id="hw3-trace-title">Ready to start</p>
+        <span class="stepper-progress" id="hw3-trace-progress">Step 0 of 15</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(235px,1fr)); gap:18px; margin-bottom:12px;">
+        <div><div class="trace-label">Stack (bottom &rarr; top)</div><div class="stack-chip-row" id="hw3-trace-stack"></div></div>
+        <div><div class="trace-label">Remaining input</div><div class="stack-chip-row" id="hw3-trace-input"></div></div>
+      </div>
+      <div class="explain-box slr" id="hw3-trace-explain"><span class="step-label">Step 0 &middot; Initial configuration</span>The stack contains only state 0. The first unconsumed input token is <span class="mono">(</span>. Click Next to look up the first ACTION entry.</div>
+      <div class="rule-box" id="hw3-trace-lookup"></div>
+      <div class="stepper-controls">
+        <button class="step-btn secondary" id="hw3-trace-prev" type="button">&larr; Back</button>
+        <button class="step-btn primary slr" id="hw3-trace-next" type="button">Next action &rarr;</button>
+        <button class="step-btn reset" id="hw3-trace-reset" type="button">Reset</button>
+      </div>
+      <p style="font-size:0.85rem; color:var(--ink-soft); margin:14px 0 0;">Trace so far</p>
+      <div class="table-scroll"><table class="trace-table" id="hw3-trace-history"><tr><th>#</th><th>Stack before</th><th>Lookahead</th><th>ACTION</th></tr></table></div>
+    </div>
+    <h3>The completed trace</h3><div class="rule-box">Initial stack:          [ 0 ]
 Initial input pointer:  ( ( n + n ) * n ) $
                          ^
 
@@ -197,6 +217,65 @@ O → + | *</div>
   <div class="section"><h2>What this shows</h2><ul class="plain"><li>LL(1) fails at the opening parenthesis in G because both compound productions have the same initial terminal.</li><li>The SLR DFA keeps both possibilities alive in I3 and distinguishes them only in I4, after the left <span class="mono">T</span> is complete and the operator is visible.</li><li>Part 6 shows the LL(1) alternative: left-factor that same shared prefix and let O choose the operator.</li></ul></div>
   <div class="footer-nav"><a href="gotos-to-dfa-walkthrough.html">← GOTOs to DFA Walkthrough</a><a href="index.html">Homework Index →</a></div>
 </div>
+<script>
+(() => {
+  const steps = [
+    {before:'0', input:'( ( n + n ) * n ) $', action:'s3', title:'Shift ( and enter state 3', after:'0 ( 3', afterInput:'( n + n ) * n ) $', detail:'ACTION[0,(] = s3. Push the terminal ( and then its destination state 3. Consume exactly that one ( token.'},
+    {before:'0 ( 3', input:'( n + n ) * n ) $', action:'s3', title:'Shift ( and enter state 3', after:'0 ( 3 ( 3', afterInput:'n + n ) * n ) $', detail:'ACTION[3,(] = s3. This is another shift: push ( and 3, then move the input pointer past the second (.'},
+    {before:'0 ( 3 ( 3', input:'n + n ) * n ) $', action:'s2', title:'Shift n and enter state 2', after:'0 ( 3 ( 3 n 2', afterInput:'+ n ) * n ) $', detail:'ACTION[3,n] = s2. Push n and state 2; n is now consumed.'},
+    {before:'0 ( 3 ( 3 n 2', input:'+ n ) * n ) $', action:'r1', title:'Reduce r1: T -> n', after:'0 ( 3 ( 3 T 4', afterInput:'+ n ) * n ) $', detail:'ACTION[2,+] = r1. Rule 1 has RHS n, so pop one symbol/state pair: n, 2. State 3 is exposed. Push T, then use GOTO[3,T] = 4. The + stays as lookahead.'},
+    {before:'0 ( 3 ( 3 T 4', input:'+ n ) * n ) $', action:'s5', title:'Shift + and enter state 5', after:'0 ( 3 ( 3 T 4 + 5', afterInput:'n ) * n ) $', detail:'ACTION[4,+] = s5. Push + and 5, then consume +.'},
+    {before:'0 ( 3 ( 3 T 4 + 5', input:'n ) * n ) $', action:'s2', title:'Shift n and enter state 2', after:'0 ( 3 ( 3 T 4 + 5 n 2', afterInput:') * n ) $', detail:'ACTION[5,n] = s2. Push n and 2, then consume n.'},
+    {before:'0 ( 3 ( 3 T 4 + 5 n 2', input:') * n ) $', action:'r1', title:'Reduce r1: T -> n', after:'0 ( 3 ( 3 T 4 + 5 T 7', afterInput:') * n ) $', detail:'ACTION[2,)] = r1. Pop n, 2; state 5 is exposed. Push T, then GOTO[5,T] = 7. No input is consumed during this reduction.'},
+    {before:'0 ( 3 ( 3 T 4 + 5 T 7', input:') * n ) $', action:'s9', title:'Shift ) and enter state 9', after:'0 ( 3 ( 3 T 4 + 5 T 7 ) 9', afterInput:'* n ) $', detail:'ACTION[7,)] = s9. Push ) and 9, then consume ). This completes the visible shape (T+T).'},
+    {before:'0 ( 3 ( 3 T 4 + 5 T 7 ) 9', input:'* n ) $', action:'r2', title:'Reduce r2: T -> (T+T)', after:'0 ( 3 T 4', afterInput:'* n ) $', detail:'ACTION[9,*] = r2. Rule 2 has five RHS symbols: (, T, +, T, ). Pop all five symbol/state pairs, exposing state 3. Push T, then GOTO[3,T] = 4. The entire inner (n+n) is now represented by T.'},
+    {before:'0 ( 3 T 4', input:'* n ) $', action:'s6', title:'Shift * and enter state 6', after:'0 ( 3 T 4 * 6', afterInput:'n ) $', detail:'ACTION[4,*] = s6. Push * and 6, then consume *.'},
+    {before:'0 ( 3 T 4 * 6', input:'n ) $', action:'s2', title:'Shift n and enter state 2', after:'0 ( 3 T 4 * 6 n 2', afterInput:') $', detail:'ACTION[6,n] = s2. Push n and 2, then consume n.'},
+    {before:'0 ( 3 T 4 * 6 n 2', input:') $', action:'r1', title:'Reduce r1: T -> n', after:'0 ( 3 T 4 * 6 T 8', afterInput:') $', detail:'ACTION[2,)] = r1. Pop n, 2; state 6 is exposed. Push T, then GOTO[6,T] = 8.'},
+    {before:'0 ( 3 T 4 * 6 T 8', input:') $', action:'s10', title:'Shift ) and enter state 10', after:'0 ( 3 T 4 * 6 T 8 ) 10', afterInput:'$', detail:'ACTION[8,)] = s10. Push ) and 10, then consume the final ). The visible stack segment now matches (T*T).'},
+    {before:'0 ( 3 T 4 * 6 T 8 ) 10', input:'$', action:'r3', title:'Reduce r3: T -> (T*T)', after:'0 T 1', afterInput:'$', detail:'ACTION[10,$] = r3. Pop the five symbol/state pairs for (, T, *, T, ). This exposes state 0. Push T, then GOTO[0,T] = 1. The full input is now represented by T.'},
+    {before:'0 T 1', input:'$', action:'accept', title:'Accept', after:'0 T 1', afterInput:'', detail:'ACTION[1,$] = accept. The input is exhausted and the stack holds the start nonterminal T, so parsing succeeds.'}
+  ];
+  let position = 0;
+  const byId = id => document.getElementById(id);
+  const escape = value => value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const chips = (value, markTop) => value ? value.split(' ').map((token, index, all) => {
+    const classes = ['chip'];
+    if (/^\d+$/.test(token)) classes.push('state');
+    if (markTop && index === all.length - 1) classes.push('top');
+    return `<span class="${classes.join(' ')}">${escape(token)}</span>`;
+  }).join('') : '<span class="chip" style="opacity:.55;">input exhausted</span>';
+  const render = () => {
+    const current = position === 0 ? {before:'0', input:'( ( n + n ) * n ) $'} : steps[position - 1];
+    const stack = position === 0 ? current.before : current.after;
+    const input = position === 0 ? current.input : current.afterInput;
+    byId('hw3-trace-title').textContent = position === 0 ? 'Ready to start' : current.title;
+    byId('hw3-trace-progress').textContent = `Step ${position} of ${steps.length}`;
+    byId('hw3-trace-stack').innerHTML = chips(stack, true);
+    byId('hw3-trace-input').innerHTML = chips(input, false);
+    byId('hw3-trace-explain').innerHTML = position === 0
+      ? '<span class="step-label">Step 0 · Initial configuration</span>The stack contains only state 0. The first unconsumed input token is <span class="mono">(</span>. Click Next to look up the first ACTION entry.'
+      : `<span class="step-label">Step ${position} · ${current.title}</span>${current.detail}`;
+    byId('hw3-trace-lookup').textContent = position === 0
+      ? 'Next lookup: ACTION[0, (]'
+      : `Lookup used: ACTION[${current.before.split(' ').at(-1)}, ${current.input.split(' ')[0]}] = ${current.action}`;
+    const history = byId('hw3-trace-history');
+    history.innerHTML = '<tr><th>#</th><th>Stack before</th><th>Lookahead</th><th>ACTION</th></tr>';
+    steps.slice(0, position).forEach((step, index) => {
+      const row = document.createElement('tr');
+      if (index === position - 1) row.className = 'current-row slr';
+      row.innerHTML = `<td class="step-idx">${index + 1}</td><td>${escape(step.before)}</td><td>${escape(step.input.split(' ')[0])}</td><td class="${step.action.startsWith('s') ? 'action-shift' : step.action.startsWith('r') ? 'action-reduce' : 'action-accept'}">${escape(step.action)}</td>`;
+      history.appendChild(row);
+    });
+    byId('hw3-trace-prev').disabled = position === 0;
+    byId('hw3-trace-next').disabled = position === steps.length;
+  };
+  byId('hw3-trace-next').addEventListener('click', () => { if (position < steps.length) { position += 1; render(); } });
+  byId('hw3-trace-prev').addEventListener('click', () => { if (position > 0) { position -= 1; render(); } });
+  byId('hw3-trace-reset').addEventListener('click', () => { position = 0; render(); });
+  render();
+})();
+</script>
 <script src="../nav.js"></script>
 </body>
 </html>
