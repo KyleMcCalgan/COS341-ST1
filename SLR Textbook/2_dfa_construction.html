@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>A.6 — Subset Construction to DFAmin</title>
+<link rel="stylesheet" href="../style.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -84,8 +86,10 @@
   .minitable th{color:var(--amber);background:#152241;}
   .minitable td{color:#c3cee3;}
 </style>
+<link rel="stylesheet" href="slr-walkthrough.css">
 </head>
-<body>
+<body class="slr-walkthrough">
+<div class="topbar"><div class="topbar-inner"><div class="brand">SLR Derivation<small>COS341 · 2024 Test 1</small></div><nav class="topnav"><a href="../index.html">Course Index</a><a href="../parsing/index.html">Parsing Index</a><a href="../parsing/slr.html">SLR</a><a href="../past-papers/paper-2024-test1.html">2024 Memo</a></nav></div></div>
 <div class="wrap">
   <header>
     <div>
@@ -94,6 +98,8 @@
     </div>
     <div class="sub">Every DFA state = the ε-closure of a set of NFA states. We build it with a worklist, exactly like converting a regex-NFA to a DFA.</div>
   </header>
+
+  <nav class="slr-sequence" aria-label="2024 Test 1 SLR derivation steps"><span class="label">SLR path</span><a href="1_nfa_construction.html">A.5 NFA</a><span class="route">→</span><a class="active" href="2_dfa_construction.html">A.6 DFAmin</a><span class="route">→</span><a href="3_slr_table_construction.html">A.7 Table</a><a class="memo" href="../past-papers/paper-2024-test1.html">Back to worked memo</a></nav>
 
   <div class="progress" id="progress"></div>
 
@@ -353,5 +359,6 @@ document.addEventListener('keydown',e=>{
 });
 render();
 </script>
+<script src="../nav.js"></script>
 </body>
 </html>
