@@ -97,8 +97,8 @@
       <tr><th>Nonterminal</th><th>FIRST set</th><th>FOLLOW set</th></tr>
       <tr><td>S</td><td class="hl">{a}</td><td class="hl">{$}</td></tr>
       <tr><td>Z</td><td class="hl">{a}</td><td class="hl">{$}</td></tr>
-      <tr><td>X</td><td class="hl">{a}</td><td class="hl">{a}</td></tr>
-      <tr><td>Y</td><td class="hl">{a}</td><td class="hl">{$}</td></tr>
+      <tr><td>X</td><td class="hl">{a, ε}</td><td class="hl">{a}</td></tr>
+      <tr><td>Y</td><td class="hl">{a, ε}</td><td class="hl">{$}</td></tr>
     </table>
     <p style="font-size:0.85rem; color:var(--ink-soft);">
     FOLLOW(X)={a} comes directly from the literal 'a' that always follows X inside
@@ -130,7 +130,9 @@
   <div class="callout warn">
     <span class="label">Scenario for A.5–A.7</span>
     Curt Curious wants to see what happens if we build an SLR table for this ambiguous grammar
-    anyway — including the augmented rule 0.
+    anyway. These answers use the standard augmented production <span class="mono">S′→S</span>;
+    <span class="mono">$</span> is the end-of-input lookahead used for ACCEPT, not a symbol in
+    the augmented production.
   </div>
 
   <div class="qbox">
@@ -142,26 +144,27 @@
     dot sits before a nonterminal:</p>
     <table class="data" style="text-align:left;">
       <tr><th>Production</th><th>States (dot positions)</th><th>Transitions</th></tr>
-      <tr><td>0: S₀→S$</td><td>A (•S$) → B (S•$) → C (S$•, <b>accept</b>)</td><td>A→B on S; B→C on $</td></tr>
-      <tr><td>1: S→Z</td><td>D (•Z) → E (Z•, final)</td><td>D→E on Z</td></tr>
-      <tr><td>2: Z→XaY</td><td>F (•XaY) → G (X•aY) → H (Xa•Y) → I (XaY•, final)</td><td>F→G on X; G→H on a; H→I on Y</td></tr>
-      <tr><td>3: X→a</td><td>J (•a) → K (a•, final)</td><td>J→K on a</td></tr>
-      <tr><td>4: X→ε</td><td>L (•, final — zero-width)</td><td>—</td></tr>
-      <tr><td>5: Y→a</td><td>M (•a) → N (a•, final)</td><td>M→N on a</td></tr>
-      <tr><td>6: Y→ε</td><td>O (•, final — zero-width)</td><td>—</td></tr>
+      <tr><td>0: S′→S</td><td>A (•S) → B (S•, <b>accept</b>)</td><td>A→B on S</td></tr>
+      <tr><td>1: S→Z</td><td>C (•Z) → D (Z•, final)</td><td>C→D on Z</td></tr>
+      <tr><td>2: Z→XaY</td><td>E (•XaY) → F (X•aY) → G (Xa•Y) → H (XaY•, final)</td><td>E→F on X; F→G on a; G→H on Y</td></tr>
+      <tr><td>3: X→a</td><td>I (•a) → J (a•, final)</td><td>I→J on a</td></tr>
+      <tr><td>4: X→ε</td><td>K (•, final — zero-width)</td><td>—</td></tr>
+      <tr><td>5: Y→a</td><td>L (•a) → M (a•, final)</td><td>L→M on a</td></tr>
+      <tr><td>6: Y→ε</td><td>N (•, final — zero-width)</td><td>—</td></tr>
     </table>
     <p><strong>ε-transitions (closure links, dot-before-nonterminal):</strong></p>
     <div class="rule-box">
-A --ε--> D        <span class="cm">(A's dot sits before S ⟹ enter S's only production)</span>
-D --ε--> F        <span class="cm">(D's dot sits before Z ⟹ enter Z's only production)</span>
-F --ε--> J        <span class="cm">(F's dot sits before X ⟹ enter X's production 3)</span>
-F --ε--> L        <span class="cm">(F's dot sits before X ⟹ enter X's production 4 — already final)</span>
-H --ε--> M        <span class="cm">(H's dot sits before Y ⟹ enter Y's production 5)</span>
-H --ε--> O        <span class="cm">(H's dot sits before Y ⟹ enter Y's production 6 — already final)</span>
+A --ε--> C        <span class="cm">(A's dot sits before S ⟹ enter S's only production)</span>
+C --ε--> E        <span class="cm">(C's dot sits before Z ⟹ enter Z's only production)</span>
+E --ε--> I        <span class="cm">(E's dot sits before X ⟹ enter X's production 3)</span>
+E --ε--> K        <span class="cm">(E's dot sits before X ⟹ enter X's production 4 — already final)</span>
+G --ε--> L        <span class="cm">(G's dot sits before Y ⟹ enter Y's production 5)</span>
+G --ε--> N        <span class="cm">(G's dot sits before Y ⟹ enter Y's production 6 — already final)</span>
     </div>
-    <p style="font-size:0.85rem; color:var(--ink-soft);">15 states total (A–O). Final items —
-    C (accept), E (reduce 1), I (reduce 2), K (reduce 3), L (reduce 4), N (reduce 5), O (reduce
+    <p style="font-size:0.85rem; color:var(--ink-soft);">14 states total (A–N). Final items —
+    B (accept), D (reduce 1), H (reduce 2), J (reduce 3), K (reduce 4), M (reduce 5), N (reduce
     6).</p>
+    <p><a href="../SLR%20Textbook/1_nfa_construction.html">Open the interactive A.5 control-NFA walkthrough →</a></p>
   </div>
 
   <div class="qbox">
@@ -171,15 +174,14 @@ H --ε--> O        <span class="cm">(H's dot sits before Y ⟹ enter Y's product
     <span class="ans-label">Step 1 — Subset construction (ε-closure work-list)</span>
     <table class="data" style="text-align:left;">
       <tr><th>State</th><th>= ε-closure of items</th><th>Contains</th></tr>
-      <tr><td>I</td><td>closure({A})</td><td class="hl">{S₀→•S$, S→•Z, Z→•XaY, X→•a, X→•}</td></tr>
-      <tr><td>II</td><td>GOTO(I, S)</td><td class="hl">{S₀→S•$}</td></tr>
+      <tr><td>I</td><td>closure({A})</td><td class="hl">{S′→•S, S→•Z, Z→•XaY, X→•a, X→•}</td></tr>
+      <tr><td>II</td><td>GOTO(I, S)</td><td class="hl">{S′→S•} <span class="mono">(accept)</span></td></tr>
       <tr><td>III</td><td>GOTO(I, Z)</td><td class="hl">{S→Z•} <span class="mono">(reduce 1)</span></td></tr>
       <tr><td>IV</td><td>GOTO(I, X)</td><td class="hl">{Z→X•aY}</td></tr>
       <tr><td>V</td><td>GOTO(I, a)</td><td class="hl">{X→a•} <span class="mono">(reduce 3)</span></td></tr>
-      <tr><td>VI</td><td>GOTO(II, $)</td><td class="hl">{S₀→S$•} <span class="mono">(accept)</span></td></tr>
-      <tr><td>VII</td><td>GOTO(IV, a)</td><td class="hl">{Z→Xa•Y, Y→•a, Y→•} <span class="mono">(reduce 6 candidate)</span></td></tr>
-      <tr><td>VIII</td><td>GOTO(VII, Y)</td><td class="hl">{Z→XaY•} <span class="mono">(reduce 2)</span></td></tr>
-      <tr><td>IX</td><td>GOTO(VII, a)</td><td class="hl">{Y→a•} <span class="mono">(reduce 5)</span></td></tr>
+      <tr><td>VI</td><td>GOTO(IV, a)</td><td class="hl">{Z→Xa•Y, Y→•a, Y→•} <span class="mono">(reduce 6 candidate)</span></td></tr>
+      <tr><td>VII</td><td>GOTO(VI, Y)</td><td class="hl">{Z→XaY•} <span class="mono">(reduce 2)</span></td></tr>
+      <tr><td>VIII</td><td>GOTO(VI, a)</td><td class="hl">{Y→a•} <span class="mono">(reduce 5)</span></td></tr>
     </table>
     <p style="font-size:0.85rem; color:var(--ink-soft);"><strong>Important:</strong> state I
     itself already contains the completed item <span class="mono">X→•</span> (rule 4) alongside
@@ -188,15 +190,14 @@ H --ε--> O        <span class="cm">(H's dot sits before Y ⟹ enter Y's product
 
     <span class="ans-label">Step 2 — Minimize (as in Chapter 1, using one accepting group per
     reduce-rule, like a combined lexer DFA)</span>
-    <p>Initial groups: non-accepting {II, IV}; and one singleton group per distinct
-    reduce/accept tag: {I}(reduce4), {III}(reduce1), {V}(reduce3), {VI}(accept), {VII}(reduce6),
-    {VIII}(reduce2), {IX}(reduce5).</p>
-    <p>Check {II, IV}: II transitions only on $ (→VI); IV transitions only on a (→VII). II is
-    <em>undefined</em> on a while IV is defined — inconsistent. Split into {II} and {IV}.</p>
-    <p><strong>Result: no states merge.</strong> All 9 states are pairwise distinguishable, so
-    DFA<sub>min</sub> has exactly the same 9 states as the raw subset construction — this
+    <p>Initial groups: non-accepting {IV}; and one singleton group per distinct
+    reduce/accept tag: {I}(reduce4), {II}(accept), {III}(reduce1), {V}(reduce3), {VI}(reduce6),
+    {VII}(reduce2), {VIII}(reduce5).</p>
+    <p><strong>Result: no states merge.</strong> All 8 states are pairwise distinguishable, so
+    DFA<sub>min</sub> has exactly the same 8 states as the raw subset construction — this
     automaton was already minimal. (Every accepting state carries a different reduce-tag, so
     none of those could ever merge with each other either.)</p>
+    <p><a href="../SLR%20Textbook/2_dfa_construction.html">Open the interactive A.6 subset-construction walkthrough →</a></p>
   </div>
 
   <div class="qbox">
@@ -215,14 +216,13 @@ H --ε--> O        <span class="cm">(H's dot sits before Y ⟹ enter Y's product
         <td class="hl">go IV</td>
         <td></td>
       </tr>
-      <tr><td>II</td><td></td><td class="hl">s6</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>II</td><td></td><td class="hl">accept</td><td></td><td></td><td></td><td></td></tr>
       <tr><td>III</td><td></td><td class="hl">r1</td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>IV</td><td class="hl">s7</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>IV</td><td class="hl">s6</td><td></td><td></td><td></td><td></td><td></td></tr>
       <tr><td>V</td><td class="hl">r3</td><td></td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>VI</td><td></td><td class="hl">accept</td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>VII</td><td class="hl">s9</td><td class="hl">r6</td><td></td><td></td><td></td><td class="hl">go VIII</td></tr>
-      <tr><td>VIII</td><td></td><td class="hl">r2</td><td></td><td></td><td></td><td></td></tr>
-      <tr><td>IX</td><td></td><td class="hl">r5</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>VI</td><td class="hl">s8</td><td class="hl">r6</td><td></td><td></td><td></td><td class="hl">go VII</td></tr>
+      <tr><td>VII</td><td></td><td class="hl">r2</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>VIII</td><td></td><td class="hl">r5</td><td></td><td></td><td></td><td></td></tr>
     </table>
     <p><strong>The one conflict:</strong> state I, symbol <span class="mono">a</span> — both
     <span class="mono">shift 5</span> (via X→•a) and <span class="mono">reduce 4</span> (via
@@ -230,6 +230,7 @@ H --ε--> O        <span class="cm">(H's dot sits before Y ⟹ enter Y's product
     the direct fingerprint of the same ambiguity already proven in A.2 and A.4 — X's two
     productions can't be told apart on lookahead 'a' by any 1-token-lookahead method, LL(1) or
     SLR alike.</p>
+    <p><a href="../SLR%20Textbook/3_slr_table_construction.html">Open the interactive A.7 SLR-table walkthrough →</a></p>
   </div>
 
   <div class="qbox">

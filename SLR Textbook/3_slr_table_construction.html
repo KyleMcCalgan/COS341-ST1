@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>A.7 — Building the SLR Parse Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1120; --panel:#101a2e; --panel-2:#0d1626; --line:#1e2c47; --grid:#132038;
+    --text:#dce6f5; --muted:#7c8bab; --amber:#f2a541; --teal:#5eead4; --teal-dim:#1f4a44;
+    --red:#ef5b5b; --red-dim:#3a1414; --violet:#b294f2;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      var(--bg);
+    color:var(--text); font-family:'IBM Plex Sans', sans-serif; min-height:100vh;
+  }
+  .wrap{max-width:1300px;margin:0 auto;padding:28px 28px 60px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px;}
+  .kicker{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-size:12px;letter-spacing:.18em;text-transform:uppercase;}
+  h1{font-family:'IBM Plex Mono',monospace;font-size:22px;margin:4px 0 0;font-weight:600;color:#fff;}
+  .sub{color:var(--muted);font-size:13px;max-width:520px;text-align:right;}
+
+  .progress{display:flex;gap:6px;margin:18px 0 26px;flex-wrap:wrap;}
+  .dot{width:24px;height:6px;border-radius:3px;background:var(--line);cursor:pointer;}
+  .dot.done{background:var(--teal-dim);}
+  .dot.active{background:var(--amber);box-shadow:0 0 10px var(--amber);}
+
+  .top-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start;}
+  @media (max-width:980px){.top-grid{grid-template-columns:1fr;}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 20px;}
+  .panel h2{font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:0 0 12px;}
+
+  svg{width:100%;height:auto;display:block;}
+  .dnode circle.outer{fill:var(--panel-2);stroke:#3a4a6b;stroke-width:1.5;transition:.3s;}
+  .dnode .roman{fill:#aebbd8;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;text-anchor:middle;dominant-baseline:central;transition:.3s;}
+  .dnode .set{fill:#5b6a8e;font-family:'IBM Plex Mono',monospace;font-size:9px;text-anchor:middle;transition:.3s;}
+  .dnode.spotlight circle.outer{stroke:var(--amber);stroke-width:2.6;fill:#241a0c;filter:drop-shadow(0 0 8px rgba(242,165,65,.6));}
+  .dnode.spotlight .roman{fill:var(--amber);}
+  .dedge path{fill:none;stroke:#3a4a6b;stroke-width:1.4;marker-end:url(#darrow2);}
+  .dedge text{fill:#5b6a8e;font-family:'IBM Plex Mono',monospace;font-size:11px;text-anchor:middle;}
+
+  table.follow{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px;margin-top:6px;}
+  table.follow th,table.follow td{border:1px solid var(--line);padding:6px 10px;text-align:center;}
+  table.follow th{color:var(--amber);background:#152241;}
+  table.follow td{color:#c3cee3;}
+  table.follow tr.active td{background:rgba(242,165,65,.10);color:#fff;}
+
+  .rules-mini{font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.9;margin-top:10px;color:#8493b8;}
+  .rules-mini .r.active{color:var(--amber);font-weight:700;}
+
+  .parsetable-wrap{overflow-x:auto;}
+  table.parse{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:13px;min-width:760px;}
+  table.parse th,table.parse td{border:1px solid var(--line);padding:10px 8px;text-align:center;vertical-align:middle;}
+  table.parse thead th{color:var(--amber);background:#152241;font-size:12px;}
+  table.parse thead th.grp{background:#0d1626;color:var(--muted);}
+  table.parse tbody th{color:#dce6f5;background:#0d1626;font-weight:700;}
+  table.parse td{color:#5b6a8e;min-height:20px;transition:.35s;}
+  table.parse td.filled{color:#dce6f5;background:rgba(94,234,212,.05);}
+  table.parse td.spot{background:rgba(242,165,65,.16);color:#fff;box-shadow:inset 0 0 0 2px var(--amber);}
+  table.parse td.conflict{background:rgba(239,91,91,.15);color:#ffdada;box-shadow:inset 0 0 0 2px var(--red);font-weight:600;}
+  table.parse td.accept{color:#7effc0;font-weight:700;}
+  table.parse tr.rowspot th{background:#1c2c4c;color:var(--amber);}
+
+  .narrative{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 22px;}
+  .narrative .tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#0a1120;background:var(--amber);padding:2px 9px;border-radius:4px;font-weight:700;margin-bottom:10px;}
+  .narrative.warn .tag{background:var(--red);}
+  .narrative h3{margin:0 0 8px;font-size:17px;color:#fff;font-family:'IBM Plex Mono',monospace;}
+  .narrative p{font-size:14.5px;line-height:1.7;color:#c3cee3;margin:0 0 8px;}
+  .narrative .callout{margin-top:10px;padding:10px 14px;background:rgba(94,234,212,.06);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;font-size:13.5px;color:#bfe9e0;}
+  .narrative .callout.danger{background:rgba(239,91,91,.08);border-left-color:var(--red);color:#ffd7d7;}
+
+  .controls{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:14px;}
+  button{font-family:'IBM Plex Mono',monospace;background:var(--panel);color:var(--text);border:1px solid var(--line);padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px;}
+  button:hover:not(:disabled){border-color:var(--amber);color:var(--amber);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  .stepcount{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:12.5px;}
+  .primary{background:var(--amber);color:#1a1206;border-color:var(--amber);font-weight:700;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="kicker">COS341 &middot; Task A.7</div>
+      <h1>Reading the SLR table off DFAmin</h1>
+    </div>
+    <div class="sub">shift/goto = DFAmin's own edges &middot; reduce = a completed item's rule number, placed under FOLLOW of its left-hand nonterminal.</div>
+  </header>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="top-grid">
+    <div class="panel">
+      <h2>DFAmin recap (from A.6)</h2>
+      <svg viewBox="0 0 700 380" id="dfacanvas">
+        <defs><marker id="darrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#3a4a6b"/></marker></defs>
+        <g class="dedge"><path d="M100,205 C160,140 210,95 255,70"/><text x="165" y="125">S</text></g>
+        <g class="dedge"><path d="M105,215 C160,180 210,155 255,140"/><text x="180" y="170">Z</text></g>
+        <g class="dedge"><path d="M110,225 L255,225"/><text x="185" y="215">X</text></g>
+        <g class="dedge"><path d="M105,235 C160,270 210,295 255,310"/><text x="180" y="285">a</text></g>
+        <g class="dedge"><path d="M295,225 L440,225"/><text x="365" y="215">a</text></g>
+        <g class="dedge"><path d="M470,205 C520,180 555,165 595,150"/><text x="540" y="170">Y</text></g>
+        <g class="dedge"><path d="M470,245 C520,270 555,285 595,300"/><text x="540" y="280">a</text></g>
+
+        <g class="dnode" id="s-I" transform="translate(70,225)"><circle class="outer" r="30"/><text class="roman">I</text><text class="set" y="14">ACEIK</text></g>
+        <g class="dnode" id="s-II" transform="translate(280,60)"><circle class="outer" r="24"/><text class="roman">II</text><text class="set" y="12">B</text></g>
+        <g class="dnode" id="s-III" transform="translate(280,140)"><circle class="outer" r="24"/><text class="roman">III</text><text class="set" y="12">D</text></g>
+        <g class="dnode" id="s-IV" transform="translate(280,225)"><circle class="outer" r="24"/><text class="roman">IV</text><text class="set" y="12">F</text></g>
+        <g class="dnode" id="s-V" transform="translate(280,310)"><circle class="outer" r="24"/><text class="roman">V</text><text class="set" y="12">J</text></g>
+        <g class="dnode" id="s-VI" transform="translate(465,225)"><circle class="outer" r="27"/><text class="roman">VI</text><text class="set" y="13">GLN</text></g>
+        <g class="dnode" id="s-VII" transform="translate(630,140)"><circle class="outer" r="24"/><text class="roman">VII</text><text class="set" y="12">H</text></g>
+        <g class="dnode" id="s-VIII" transform="translate(630,310)"><circle class="outer" r="24"/><text class="roman">VIII</text><text class="set" y="12">M</text></g>
+      </svg>
+      <div class="rules-mini" id="rulesmini">
+        <div class="r" data-r="0">0. S′ → S</div>
+        <div class="r" data-r="1">1. S → Z</div>
+        <div class="r" data-r="2">2. Z → X a Y</div>
+        <div class="r" data-r="3">3. X → a</div>
+        <div class="r" data-r="4">4. X → ε</div>
+        <div class="r" data-r="5">5. Y → a</div>
+        <div class="r" data-r="6">6. Y → ε</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>FOLLOW sets (from A.3, reused here for reduce placement)</h2>
+      <table class="follow" id="followtable">
+        <tr><th>Nonterminal</th><th>FIRST</th><th>FOLLOW</th></tr>
+        <tr data-nt="S"><td>S</td><td>{a}</td><td>{$}</td></tr>
+        <tr data-nt="Z"><td>Z</td><td>{a}</td><td>{$}</td></tr>
+        <tr data-nt="X"><td>X</td><td>{a, ε}</td><td>{a}</td></tr>
+        <tr data-nt="Y"><td>Y</td><td>{a, ε}</td><td>{$}</td></tr>
+      </table>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:10px;line-height:1.6;">A reduce action for production <b>N → α</b> goes into every column in FOLLOW(N). An accept action is the one exception — rule 0 always resolves to ACCEPT on <b>$</b>, never a plain reduce.</p>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px;">
+    <h2>SLR Parsing Table — building it row by row</h2>
+    <div class="parsetable-wrap">
+      <table class="parse" id="ptable">
+        <thead>
+          <tr><th class="grp" rowspan="2">state</th><th colspan="2">action</th><th colspan="4">goto</th></tr>
+          <tr><th>a</th><th>$</th><th>S</th><th>Z</th><th>X</th><th>Y</th></tr>
+        </thead>
+        <tbody>
+          <tr id="row-I"><th>I</th><td id="c-I-a"></td><td id="c-I-$"></td><td id="c-I-S"></td><td id="c-I-Z"></td><td id="c-I-X"></td><td id="c-I-Y"></td></tr>
+          <tr id="row-II"><th>II</th><td id="c-II-a"></td><td id="c-II-$"></td><td id="c-II-S"></td><td id="c-II-Z"></td><td id="c-II-X"></td><td id="c-II-Y"></td></tr>
+          <tr id="row-III"><th>III</th><td id="c-III-a"></td><td id="c-III-$"></td><td id="c-III-S"></td><td id="c-III-Z"></td><td id="c-III-X"></td><td id="c-III-Y"></td></tr>
+          <tr id="row-IV"><th>IV</th><td id="c-IV-a"></td><td id="c-IV-$"></td><td id="c-IV-S"></td><td id="c-IV-Z"></td><td id="c-IV-X"></td><td id="c-IV-Y"></td></tr>
+          <tr id="row-V"><th>V</th><td id="c-V-a"></td><td id="c-V-$"></td><td id="c-V-S"></td><td id="c-V-Z"></td><td id="c-V-X"></td><td id="c-V-Y"></td></tr>
+          <tr id="row-VI"><th>VI</th><td id="c-VI-a"></td><td id="c-VI-$"></td><td id="c-VI-S"></td><td id="c-VI-Z"></td><td id="c-VI-X"></td><td id="c-VI-Y"></td></tr>
+          <tr id="row-VII"><th>VII</th><td id="c-VII-a"></td><td id="c-VII-$"></td><td id="c-VII-S"></td><td id="c-VII-Z"></td><td id="c-VII-X"></td><td id="c-VII-Y"></td></tr>
+          <tr id="row-VIII"><th>VIII</th><td id="c-VIII-a"></td><td id="c-VIII-$"></td><td id="c-VIII-S"></td><td id="c-VIII-Z"></td><td id="c-VIII-X"></td><td id="c-VIII-Y"></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="narrative" id="narrativeBox">
+    <span class="tag" id="tag">STEP 0</span>
+    <h3 id="ntitle"></h3>
+    <p id="nbody"></p>
+    <div class="callout" id="ncallout" style="display:none;"></div>
+  </div>
+
+  <div class="controls">
+    <button id="prev">&larr; Prev</button>
+    <span class="stepcount" id="stepcount"></span>
+    <button id="next" class="primary">Next &rarr;</button>
+  </div>
+</div>
+
+<script>
+const steps = [
+  {
+    tag:"STEP 0 · SET-UP", title:"Two kinds of table entries, two different sources",
+    body:"Shift and goto entries are just DFAmin's own edges, renamed: an edge on a terminal becomes a shift, an edge on a nonterminal becomes a goto. Reduce (and accept) entries come from a completely different place — a completed item sitting inside a state, placed under that nonterminal's FOLLOW set. We'll do every state's shifts/gotos first, then hunt for its reduces.",
+    fill:[], spot:[], rowSpot:null, followRow:null, ruleSpot:[]
+  },
+  {
+    tag:"STEP 1 · STATE I", title:"State I — shift & goto, straight off the diagram",
+    body:"State I has four outgoing edges in DFAmin: on S to II, on Z to III, on X to IV, and on a to V. Copy each one directly into the table as a shift (terminal) or goto (nonterminal).",
+    fill:[
+      {cell:"c-I-S", text:"goto → II"},
+      {cell:"c-I-Z", text:"goto → III"},
+      {cell:"c-I-X", text:"goto → IV"},
+      {cell:"c-I-a", text:"shift → V"}
+    ], spot:["s-I"], rowSpot:"row-I", followRow:null, ruleSpot:[]
+  },
+  {
+    tag:"STEP 2 · STATE I · CONFLICT", title:"State I also contains a completed item — trouble on column a",
+    body:"State I = {A, C, E, I, K}. K is 'X → •', a completed item for rule 4. The rule says: place reduce-4 in every column of FOLLOW(X) = {a}. But column a in state I already holds shift → V from the previous step. Both actions now claim the same cell.",
+    fill:[{cell:"c-I-a", text:"shift → V  /  reduce r4", conflict:true}],
+    spot:["s-I"], rowSpot:"row-I", followRow:"X", ruleSpot:[4],
+    warn:true,
+    callout:"This is a genuine shift/reduce conflict, not a mistake in the construction. It's the direct SLR-table fingerprint of the ambiguity you proved in A.2: parsing the string 'aa', the parser can either shift the second a (heading toward X=a, Y=ε) or reduce X→ε first (heading toward X=ε, Y=a) — exactly the two syntax trees."
+  },
+  {
+    tag:"STEP 3 · STATE II", title:"State II — the accept state",
+    body:"State II = {B}, and B is 'S′ → S •' — the completed item for the augmenting rule 0. By convention this is never written as an ordinary reduce; it's the ACCEPT action, placed on $.",
+    fill:[{cell:"c-II-$", text:"ACCEPT", accept:true}], spot:["s-II"], rowSpot:"row-II", followRow:null, ruleSpot:[0]
+  },
+  {
+    tag:"STEP 4 · STATE III", title:"State III — reduce by rule 1",
+    body:"State III = {D}, and D is 'S → Z •', a completed item for rule 1. Place reduce-1 across FOLLOW(S) = {$}.",
+    fill:[{cell:"c-III-$", text:"reduce r1"}], spot:["s-III"], rowSpot:"row-III", followRow:"S", ruleSpot:[1]
+  },
+  {
+    tag:"STEP 5 · STATE IV", title:"State IV — shift only, no completed item",
+    body:"State IV = {F}, and F is 'Z → X • a Y' — the dot is mid-production, not at the end, so there is nothing to reduce here. Its only job is the shift edge on a, straight to state VI.",
+    fill:[{cell:"c-IV-a", text:"shift → VI"}], spot:["s-IV"], rowSpot:"row-IV", followRow:null, ruleSpot:[2]
+  },
+  {
+    tag:"STEP 6 · STATE V", title:"State V — reduce by rule 3",
+    body:"State V = {J}, and J is 'X → a •', completed for rule 3. Place reduce-3 across FOLLOW(X) = {a}. State V has no shift of its own, so no conflict arises here — unlike state I, there's nothing already sitting in that cell.",
+    fill:[{cell:"c-V-a", text:"reduce r3"}], spot:["s-V"], rowSpot:"row-V", followRow:"X", ruleSpot:[3]
+  },
+  {
+    tag:"STEP 7 · STATE VI", title:"State VI — shift & goto",
+    body:"State VI = {G, L, N}. G ('Z → X a • Y') shifts on Y to VII; L ('Y → • a') shifts on a to VIII. Copy both edges in.",
+    fill:[{cell:"c-VI-Y", text:"goto → VII"},{cell:"c-VI-a", text:"shift → VIII"}], spot:["s-VI"], rowSpot:"row-VI", followRow:null, ruleSpot:[2,5]
+  },
+  {
+    tag:"STEP 8 · STATE VI", title:"State VI — the reduce hiding alongside those shifts",
+    body:"N ('Y → •') is also inside state VI — a completed item for rule 6. Place reduce-6 across FOLLOW(Y) = {$}. Column $ in state VI is currently empty, so this drops in cleanly: no conflict, because the shift on a and the reduce on $ live in different columns.",
+    fill:[{cell:"c-VI-$", text:"reduce r6"}], spot:["s-VI"], rowSpot:"row-VI", followRow:"Y", ruleSpot:[6]
+  },
+  {
+    tag:"STEP 9 · STATE VII", title:"State VII — reduce by rule 2",
+    body:"State VII = {H}, and H is 'Z → X a Y •', completed for rule 2. Place reduce-2 across FOLLOW(Z) = {$}.",
+    fill:[{cell:"c-VII-$", text:"reduce r2"}], spot:["s-VII"], rowSpot:"row-VII", followRow:"Z", ruleSpot:[2]
+  },
+  {
+    tag:"STEP 10 · STATE VIII", title:"State VIII — reduce by rule 5",
+    body:"State VIII = {M}, and M is 'Y → a •', completed for rule 5. Place reduce-5 across FOLLOW(Y) = {$}.",
+    fill:[{cell:"c-VIII-$", text:"reduce r5"}], spot:["s-VIII"], rowSpot:"row-VIII", followRow:"Y", ruleSpot:[5]
+  },
+  {
+    tag:"STEP 11 · DONE", title:"Complete SLR table — one conflict, exactly where the ambiguity lives",
+    body:"Every cell is now filled. Reading down: seven states behave as an ordinary deterministic shift-reduce parser would. State I, column a, is the sole exception — the shift/reduce conflict flagged in red — because it's the only place where a completed nullable item (X → ε) and a live shift on the same lookahead symbol collide.",
+    fill:[], spot:[], rowSpot:null, followRow:null, ruleSpot:[],
+    callout:"That single conflict cell is the whole answer to 'why does an ambiguous grammar break SLR parsing': the table simply cannot decide, on seeing the second a of the input aa, whether it has just finished an X (via ε) or should keep shifting toward a literal a inside X."
+  }
+];
+
+let cur = 0;
+const progress = document.getElementById('progress');
+steps.forEach((_,i)=>{
+  const d = document.createElement('div'); d.className='dot'; d.onclick=()=>{cur=i;render();};
+  progress.appendChild(d);
+});
+
+// track cumulative fills
+function allFillsUpTo(i){
+  const map = {};
+  for(let k=0;k<=i;k++){
+    (steps[k].fill||[]).forEach(f=>{ map[f.cell]=f; });
+  }
+  return map;
+}
+
+function render(){
+  const s = steps[cur];
+
+  document.querySelectorAll('.dnode').forEach(n=>n.classList.toggle('spotlight', (s.spot||[]).includes(n.id)));
+
+  document.querySelectorAll('table.parse tbody tr').forEach(tr=>tr.classList.remove('rowspot'));
+  if(s.rowSpot) document.getElementById(s.rowSpot).classList.add('rowspot');
+
+  document.querySelectorAll('table.follow tr').forEach(tr=>tr.classList.toggle('active', tr.dataset.nt===s.followRow));
+
+  document.querySelectorAll('.rules-mini .r').forEach(r=>r.classList.toggle('active',(s.ruleSpot||[]).includes(parseInt(r.dataset.r))));
+
+  const fills = allFillsUpTo(cur);
+  document.querySelectorAll('table.parse td[id^="c-"]').forEach(td=>{
+    td.className='';
+    const f = fills[td.id];
+    if(f){
+      td.textContent=f.text;
+      td.classList.add('filled');
+      if(f.conflict) td.classList.add('conflict');
+      if(f.accept) td.classList.add('accept');
+    } else {
+      td.textContent='';
+    }
+  });
+  // spotlight the cell(s) touched THIS step
+  (s.fill||[]).forEach(f=>{ document.getElementById(f.cell).classList.add('spot'); });
+
+  document.getElementById('tag').textContent = s.tag;
+  document.getElementById('ntitle').textContent = s.title;
+  document.getElementById('nbody').textContent = s.body;
+  document.getElementById('narrativeBox').classList.toggle('warn', !!s.warn);
+  const cb = document.getElementById('ncallout');
+  if(s.callout){cb.style.display='block'; cb.classList.toggle('danger', !!s.warn); cb.textContent = s.callout;} else {cb.style.display='none';}
+
+  document.querySelectorAll('.dot').forEach((d,i)=>{d.classList.toggle('active', i===cur); d.classList.toggle('done', i<cur);});
+  document.getElementById('stepcount').textContent = `Step ${cur+1} / ${steps.length}`;
+  document.getElementById('prev').disabled = cur===0;
+  document.getElementById('next').disabled = cur===steps.length-1;
+}
+document.getElementById('prev').onclick=()=>{if(cur>0){cur--;render();}};
+document.getElementById('next').onclick=()=>{if(cur<steps.length-1){cur++;render();}};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight') document.getElementById('next').click();
+  if(e.key==='ArrowLeft') document.getElementById('prev').click();
+});
+render();
+</script>
+</body>
+</html>

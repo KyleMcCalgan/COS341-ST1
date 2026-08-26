@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>A.5 — Building the Control-NFA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a1120;
+    --panel:#101a2e;
+    --panel-2:#0d1626;
+    --line:#1e2c47;
+    --grid:#132038;
+    --text:#dce6f5;
+    --muted:#7c8bab;
+    --amber:#f2a541;
+    --amber-dim:#7a5b26;
+    --teal:#5eead4;
+    --teal-dim:#1f4a44;
+    --red:#ef5b5b;
+    --violet:#b294f2;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0/40px 40px,
+      var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:1300px;margin:0 auto;padding:28px 28px 60px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px;}
+  .kicker{font-family:'IBM Plex Mono',monospace;color:var(--amber);font-size:12px;letter-spacing:.18em;text-transform:uppercase;}
+  h1{font-family:'IBM Plex Mono',monospace;font-size:22px;margin:4px 0 0;font-weight:600;color:#fff;}
+  .sub{color:var(--muted);font-size:13px;max-width:520px;text-align:right;}
+
+  .progress{display:flex;gap:6px;margin:18px 0 26px;flex-wrap:wrap;}
+  .dot{
+    width:26px;height:6px;border-radius:3px;background:var(--line);cursor:pointer;transition:.25s;
+  }
+  .dot.done{background:var(--teal-dim);}
+  .dot.active{background:var(--amber);box-shadow:0 0 10px var(--amber);}
+
+  .grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start;}
+  @media (max-width:980px){.grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 20px;}
+  .panel h2{font-family:'IBM Plex Mono',monospace;font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:0 0 12px;}
+
+  .grammar{font-family:'IBM Plex Mono',monospace;font-size:14px;line-height:2.05;}
+  .rule{padding:3px 8px;border-radius:5px;border:1px solid transparent;color:#93a2c4;transition:.3s;}
+  .rule .num{color:#556;display:inline-block;width:20px;}
+  .rule.active{background:rgba(242,165,65,.12);border-color:var(--amber);color:#fff;}
+  .rule.active .num{color:var(--amber);font-weight:700;}
+  .rule.done{color:#5f7196;}
+  .rule .arrow{color:var(--violet);}
+  .rule .eps{color:var(--teal);font-style:italic;}
+
+  .note-box{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);}
+  .note-box h3{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--amber);margin:0 0 8px;}
+  .note-box p{font-size:13.5px;line-height:1.6;color:#c3cee3;margin:0 0 10px;}
+  .note-box p:last-child{margin-bottom:0;}
+  code.k{background:#182642;border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-family:'IBM Plex Mono',monospace;color:var(--teal);font-size:12.5px;}
+
+  .stage{position:relative;}
+  svg{width:100%;height:auto;display:block;}
+  .node circle{fill:var(--panel-2);stroke:#3a4a6b;stroke-width:1.6;transition:all .35s;}
+  .node text{fill:#aebbd8;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;text-anchor:middle;dominant-baseline:central;transition:.35s;}
+  .node .item{fill:#6c7ba0;font-family:'IBM Plex Mono',monospace;font-size:10.5px;text-anchor:middle;transition:.35s;}
+  .node.hidden{opacity:0;}
+  .node.revealed circle{fill:#152241;stroke:#4a5d85;}
+  .node.revealed text{fill:#dce6f5;}
+  .node.revealed .item{fill:#8493b8;}
+  .node.spotlight circle{stroke:var(--amber);stroke-width:2.6;fill:#241a0c;filter:drop-shadow(0 0 8px rgba(242,165,65,.7));}
+  .node.spotlight text{fill:var(--amber);}
+  .node.accept circle.ring{fill:none;stroke:#3a4a6b;stroke-width:1.4;}
+  .node.revealed .ring{stroke:#4a5d85;}
+  .node.spotlight .ring{stroke:var(--amber);}
+
+  .edge{opacity:0;transition:opacity .4s;}
+  .edge.revealed{opacity:1;}
+  .edge.spotlight path{stroke:var(--amber) !important;stroke-width:2.6 !important;filter:drop-shadow(0 0 6px rgba(242,165,65,.6));}
+  .edge.spotlight text{fill:var(--amber) !important;font-weight:700;}
+  .edge path{fill:none;stroke:#4a5d85;stroke-width:1.6;marker-end:url(#arrow);}
+  .edge.eps path{stroke:var(--teal);stroke-width:1.5;stroke-dasharray:5 4;marker-end:url(#arrowTeal);}
+  .edge text{fill:#96a4c6;font-family:'IBM Plex Mono',monospace;font-size:12.5px;text-anchor:middle;}
+  .edge.eps text{fill:var(--teal);}
+
+  .rowlabel{fill:#4b5b81;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+
+  .narrative{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px 22px;}
+  .narrative .tag{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;color:#0a1120;background:var(--amber);padding:2px 9px;border-radius:4px;font-weight:700;margin-bottom:10px;}
+  .narrative h3{margin:0 0 8px;font-size:17px;color:#fff;font-family:'IBM Plex Mono',monospace;}
+  .narrative p{font-size:14.5px;line-height:1.7;color:#c3cee3;margin:0 0 8px;}
+  .narrative p:last-child{margin-bottom:0;}
+  .narrative .callout{margin-top:10px;padding:10px 14px;background:rgba(94,234,212,.06);border-left:3px solid var(--teal);border-radius:0 6px 6px 0;font-size:13.5px;color:#bfe9e0;}
+
+  .controls{display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:14px;}
+  button{
+    font-family:'IBM Plex Mono',monospace;background:var(--panel);color:var(--text);border:1px solid var(--line);
+    padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px;letter-spacing:.03em;transition:.2s;
+  }
+  button:hover:not(:disabled){border-color:var(--amber);color:var(--amber);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+  .stepcount{font-family:'IBM Plex Mono',monospace;color:var(--muted);font-size:12.5px;}
+  .primary{background:var(--amber);color:#1a1206;border-color:var(--amber);font-weight:700;}
+  .primary:hover{filter:brightness(1.08);color:#1a1206;}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);}
+  .legend span.sw{display:inline-block;width:16px;height:2px;vertical-align:middle;margin-right:6px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="kicker">COS341 &middot; Task A.5</div>
+      <h1>Building the Control-NFA, state by state</h1>
+    </div>
+    <div class="sub">Grammar G with rules 1–6, plus the augmenting rule 0 (S′ → S) needed for SLR construction.</div>
+  </header>
+
+  <div class="progress" id="progress"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Grammar (with rule 0 added)</h2>
+      <div class="grammar" id="grammar">
+        <div class="rule" data-rule="0"><span class="num">0.</span> S′ <span class="arrow">→</span> S <span class="eps">(augmenting rule — added purely to build the automaton)</span></div>
+        <div class="rule" data-rule="1"><span class="num">1.</span> S <span class="arrow">→</span> Z</div>
+        <div class="rule" data-rule="2"><span class="num">2.</span> Z <span class="arrow">→</span> X a Y</div>
+        <div class="rule" data-rule="3"><span class="num">3.</span> X <span class="arrow">→</span> a</div>
+        <div class="rule" data-rule="4"><span class="num">4.</span> X <span class="arrow">→</span> <span class="eps">ε</span> <span class="eps">(nullable)</span></div>
+        <div class="rule" data-rule="5"><span class="num">5.</span> Y <span class="arrow">→</span> a</div>
+        <div class="rule" data-rule="6"><span class="num">6.</span> Y <span class="arrow">→</span> <span class="eps">ε</span> <span class="eps">(nullable)</span></div>
+      </div>
+      <div class="note-box">
+        <h3>The two kinds of edges you're about to draw</h3>
+        <p><code class="k">solid arrow, on a grammar symbol</code> — one per position inside a production. It's exactly the "shift the dot one place to the right" move.</p>
+        <p><code class="k">dashed arrow, on ε</code> — added afterwards, whenever a state's dot sits <em>immediately before a nonterminal</em>. It links that state to the <em>start</em> state of every rule defining that nonterminal.</p>
+      </div>
+      <div class="note-box" id="sidenote">
+        <h3>What's happening now</h3>
+        <p id="sidenote-text">Press <b>Next</b> to begin.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel stage">
+        <h2>Control-NFA canvas</h2>
+        <svg viewBox="0 0 900 760" id="canvas">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#4a5d85"/>
+            </marker>
+            <marker id="arrowTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#5eead4"/>
+            </marker>
+          </defs>
+
+          <text class="rowlabel" x="10" y="30">rule 0</text>
+          <text class="rowlabel" x="10" y="130">rule 1</text>
+          <text class="rowlabel" x="10" y="230">rule 2</text>
+          <text class="rowlabel" x="10" y="330">rule 3</text>
+          <text class="rowlabel" x="10" y="430">rule 4</text>
+          <text class="rowlabel" x="10" y="530">rule 5</text>
+          <text class="rowlabel" x="10" y="630">rule 6</text>
+
+          <!-- ================= EDGES ================= -->
+          <!-- rule 0 -->
+          <g class="edge" data-step="1" id="e-AB"><path d="M112,60 L238,60"/><text x="175" y="50">S</text></g>
+          <!-- rule 1 -->
+          <g class="edge" data-step="2" id="e-CD"><path d="M112,160 L238,160"/><text x="175" y="150">Z</text></g>
+          <!-- rule 2 -->
+          <g class="edge" data-step="3" id="e-EF"><path d="M112,260 L238,260"/><text x="175" y="250">X</text></g>
+          <g class="edge" data-step="3" id="e-FG"><path d="M282,260 L408,260"/><text x="345" y="250">a</text></g>
+          <g class="edge" data-step="3" id="e-GH"><path d="M452,260 L578,260"/><text x="515" y="250">Y</text></g>
+          <!-- rule 3 -->
+          <g class="edge" data-step="4" id="e-IJ"><path d="M112,360 L238,360"/><text x="175" y="350">a</text></g>
+          <!-- rule 5 -->
+          <g class="edge" data-step="6" id="e-LM"><path d="M112,560 L238,560"/><text x="175" y="550">a</text></g>
+
+          <!-- epsilon edges -->
+          <g class="edge eps" data-step="8" id="eps-AC"><path d="M90,82 Q60,120 90,138"/><text x="46" y="112">ε</text></g>
+          <g class="edge eps" data-step="9" id="eps-CE"><path d="M90,182 Q60,220 90,238"/><text x="46" y="212">ε</text></g>
+          <g class="edge eps" data-step="10" id="eps-EI"><path d="M90,282 Q60,320 90,338"/><text x="46" y="312">ε</text></g>
+          <g class="edge eps" data-step="11" id="eps-EK"><path d="M78,282 C25,330 25,410 78,442"/><text x="20" y="380">ε</text></g>
+          <g class="edge eps" data-step="12" id="eps-GL"><path d="M420,282 C280,400 160,480 100,542"/><text x="270" y="430">ε</text></g>
+          <g class="edge eps" data-step="13" id="eps-GN"><path d="M432,282 C380,480 220,600 100,642"/><text x="330" y="530">ε</text></g>
+
+          <!-- ================= NODES ================= -->
+          <!-- rule 0 -->
+          <g class="node" data-step="1" id="n-A" transform="translate(90,60)"><circle r="22"/><text>A</text></g>
+          <g class="node accept" data-step="1" id="n-B" transform="translate(260,60)"><circle r="22"/><circle class="ring" r="17"/><text>B</text><text class="item" y="34">accept (rule 0)</text></g>
+
+          <!-- rule 1 -->
+          <g class="node" data-step="2" id="n-C" transform="translate(90,160)"><circle r="22"/><text>C</text></g>
+          <g class="node accept" data-step="2" id="n-D" transform="translate(260,160)"><circle r="22"/><circle class="ring" r="17"/><text>D</text><text class="item" y="34">reduce r1</text></g>
+
+          <!-- rule 2 -->
+          <g class="node" data-step="3" id="n-E" transform="translate(90,260)"><circle r="22"/><text>E</text></g>
+          <g class="node" data-step="3" id="n-F" transform="translate(260,260)"><circle r="22"/><text>F</text></g>
+          <g class="node" data-step="3" id="n-G" transform="translate(430,260)"><circle r="22"/><text>G</text></g>
+          <g class="node accept" data-step="3" id="n-H" transform="translate(600,260)"><circle r="22"/><circle class="ring" r="17"/><text>H</text><text class="item" y="34">reduce r2</text></g>
+
+          <!-- rule 3 -->
+          <g class="node" data-step="4" id="n-I" transform="translate(90,360)"><circle r="22"/><text>I</text></g>
+          <g class="node accept" data-step="4" id="n-J" transform="translate(260,360)"><circle r="22"/><circle class="ring" r="17"/><text>J</text><text class="item" y="34">reduce r3</text></g>
+
+          <!-- rule 4 -->
+          <g class="node accept" data-step="5" id="n-K" transform="translate(90,460)"><circle r="22"/><circle class="ring" r="17"/><text>K</text><text class="item" y="34">reduce r4</text></g>
+
+          <!-- rule 5 -->
+          <g class="node" data-step="6" id="n-L" transform="translate(90,560)"><circle r="22"/><text>L</text></g>
+          <g class="node accept" data-step="6" id="n-M" transform="translate(260,560)"><circle r="22"/><circle class="ring" r="17"/><text>M</text><text class="item" y="34">reduce r5</text></g>
+
+          <!-- rule 6 -->
+          <g class="node accept" data-step="7" id="n-N" transform="translate(90,660)"><circle r="22"/><circle class="ring" r="17"/><text>N</text><text class="item" y="34">reduce r6</text></g>
+        </svg>
+        <div class="legend">
+          <div><span class="sw" style="background:#4a5d85"></span>shift on a grammar symbol (dot moves right)</div>
+          <div><span class="sw" style="background:#5eead4;border-top:2px dashed #5eead4;height:0"></span>ε-transition (dot stands before a nonterminal)</div>
+          <div><span class="sw" style="background:transparent;border:1px solid #4a5d85;border-radius:50%;width:10px;height:10px;display:inline-block;margin-right:6px"></span>state with a double ring = completed item (a reduce/accept target)</div>
+        </div>
+      </div>
+
+      <div class="narrative">
+        <span class="tag" id="tag">STEP 0</span>
+        <h3 id="ntitle">Welcome</h3>
+        <p id="nbody">This walkthrough builds the exact NFA Task A.5 asks for — one state per "dot position" in every production, plus the ε-transitions that let the automaton dive into a nonterminal's own productions. Every state is deliberately named with a capital letter that isn't S, X, Y or Z, exactly as the paper's advice suggests.</p>
+        <div class="callout" id="ncallout" style="display:none;"></div>
+      </div>
+
+      <div class="controls">
+        <button id="prev">&larr; Prev</button>
+        <span class="stepcount" id="stepcount"></span>
+        <button id="next" class="primary">Next &rarr;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const steps = [
+  {
+    tag:"STEP 0 · SET-UP", title:"Why rule 0 exists",
+    body:"SLR construction always starts by augmenting the grammar with a fresh start rule S′ → S. It gives the automaton a single, unambiguous state to recognise \"parsing is completely done\" — that state's only job is to trigger the ACCEPT action. It never appears anywhere else in the automaton.",
+    rules:[0], nodes:[], edges:[], side:"Nothing drawn yet — first, look at rule 0 in the grammar panel on the left. It's not part of the original language; it exists purely so the parser has a clean state to call 'accept'."
+  },
+  {
+    tag:"STEP 1 · RULE 0", title:"Chain for S′ → S",
+    body:"A production with n symbols on its right-hand side becomes a straight chain of n+1 states, one per dot position, joined by solid edges labelled with the symbol you cross. Rule 0 has exactly one symbol (S), so it's the simplest possible chain: two states, one edge.",
+    rules:[0], nodes:["n-A","n-B"], edges:["e-AB"],
+    side:"State A = 'S′ → • S' (the dot is before everything — this is where every parse begins). State B = 'S′ → S •' (the dot has passed S — parsing is complete). B is drawn with a double ring because it's a completed item.",
+    callout:"A is the single overall start state of the whole NFA."
+  },
+  {
+    tag:"STEP 2 · RULE 1", title:"Chain for S → Z",
+    body:"Same recipe, next rule. S → Z has one symbol, so again a 2-state chain: C = 'S → • Z', D = 'S → Z •'.",
+    rules:[1], nodes:["n-C","n-D"], edges:["e-CD"],
+    side:"D is a completed item too, but for rule 1, not rule 0 — later this becomes a reduce action, not accept. Keep chains for different rules completely separate for now; we only connect them once we add ε-edges."
+  },
+  {
+    tag:"STEP 3 · RULE 2", title:"Chain for Z → X a Y",
+    body:"This production has three symbols (X, a, Y), so its chain needs four states: one before X, one between X and a, one between a and Y, and one after Y.",
+    rules:[2], nodes:["n-E","n-F","n-G","n-H"], edges:["e-EF","e-FG","e-GH"],
+    side:"E = 'Z → • X a Y', F = 'Z → X • a Y', G = 'Z → X a • Y', H = 'Z → X a Y •' (completed → reduce by rule 2). Notice E's dot sits right before the nonterminal X, and G's dot sits right before the nonterminal Y — flag both, we'll need them for ε-edges shortly."
+  },
+  {
+    tag:"STEP 4 · RULE 3", title:"Chain for X → a",
+    body:"One symbol again → a 2-state chain.",
+    rules:[3], nodes:["n-I","n-J"], edges:["e-IJ"],
+    side:"I = 'X → • a', J = 'X → a •' (completed → reduce by rule 3)."
+  },
+  {
+    tag:"STEP 5 · RULE 4 (nullable)", title:"The empty chain for X → ε",
+    body:"This is the special case the question's diagram hints at. X → ε has nothing on its right-hand side, so there is no dot movement at all: the 'before' position and the 'after' position are the very same position. That collapses the whole chain into a single state, which is simultaneously the start item and the completed item.",
+    rules:[4], nodes:["n-K"], edges:[],
+    side:"K = 'X → •' — already a completed item the instant it's created. It gets a double ring immediately, with no incoming solid edge, because nothing was ever consumed.",
+    callout:"This is exactly the optimisation used for ε-productions: don't draw two states joined by an invisible 'do-nothing' edge — just draw one."
+  },
+  {
+    tag:"STEP 6 · RULE 5", title:"Chain for Y → a",
+    body:"Mirrors rule 3 exactly, just for Y instead of X.",
+    rules:[5], nodes:["n-L","n-M"], edges:["e-LM"],
+    side:"L = 'Y → • a', M = 'Y → a •' (completed → reduce by rule 5)."
+  },
+  {
+    tag:"STEP 7 · RULE 6 (nullable)", title:"The empty chain for Y → ε",
+    body:"Same trick as rule 4: no symbols to consume, so a single self-completed state.",
+    rules:[6], nodes:["n-N"], edges:[],
+    side:"N = 'Y → •' — completed instantly (reduce by rule 6)."
+  },
+  {
+    tag:"STEP 8 · CONNECT", title:"ε-edge #1 — out of A",
+    body:"Now we wire the chains together. Rule: whenever a state's dot sits immediately before a nonterminal N, add a dashed ε-edge from that state to the start state of every production whose left-hand side is N. State A = 'S′ → • S' has its dot before S, and S has exactly one rule (rule 1, starting at C).",
+    rules:[0,1], nodes:[], edges:["eps-AC"], spotlightEdges:["eps-AC"],
+    side:"A --ε--> C. Reading this out loud: 'to actually parse an S here, jump into S's own rule and start matching it from scratch.'"
+  },
+  {
+    tag:"STEP 9 · CONNECT", title:"ε-edge #2 — out of C",
+    body:"C = 'S → • Z' has its dot before Z. Z has exactly one rule (rule 2, starting at E).",
+    rules:[1,2], nodes:[], edges:["eps-CE"], spotlightEdges:["eps-CE"],
+    side:"C --ε--> E. The chain now reads A → C → E purely through ε-edges before a single input symbol has even been considered."
+  },
+  {
+    tag:"STEP 10 · CONNECT", title:"ε-edge #3 — out of E, into X's a-rule",
+    body:"E = 'Z → • X a Y' has its dot before X. X has two rules: rule 3 (X → a, starting at I) and rule 4 (X → ε, starting at K). Both need an ε-edge from E. First, rule 3.",
+    rules:[2,3], nodes:[], edges:["eps-EI"], spotlightEdges:["eps-EI"],
+    side:"E --ε--> I. This is the 'X might start by shifting an a' branch."
+  },
+  {
+    tag:"STEP 11 · CONNECT", title:"ε-edge #4 — out of E, into X's ε-rule",
+    body:"Second half of the same rule: E must also reach K, the start (and only) state of X → ε, since X could just as validly derive nothing at all here.",
+    rules:[2,4], nodes:[], edges:["eps-EK"], spotlightEdges:["eps-EK"],
+    side:"E --ε--> K. E now has two outgoing ε-edges (to I and to K) plus its own solid X-edge to F is NOT drawn from E directly — shifting on the nonterminal X itself only happens after a reduction has produced it. This is precisely why K, being nullable, matters: it lets the automaton 'produce an X' without consuming any input.",
+    callout:"This double ε-branch out of E is the seed of the shift/reduce conflict you'll uncover in the parse table — keep an eye on state E's descendants."
+  },
+  {
+    tag:"STEP 12 · CONNECT", title:"ε-edge #5 — out of G, into Y's a-rule",
+    body:"G = 'Z → X a • Y' has its dot before Y. Y has two rules: rule 5 (Y → a, starting at L) and rule 6 (Y → ε, starting at N). First, rule 5.",
+    rules:[2,5], nodes:[], edges:["eps-GL"], spotlightEdges:["eps-GL"],
+    side:"G --ε--> L. Same pattern as before, just one row down the grammar."
+  },
+  {
+    tag:"STEP 13 · CONNECT", title:"ε-edge #6 — out of G, into Y's ε-rule",
+    body:"And G must also reach N, since Y might derive nothing here too.",
+    rules:[2,6], nodes:[], edges:["eps-GN"], spotlightEdges:["eps-GN"],
+    side:"G --ε--> N. G now branches to L and N exactly the way E branched to I and K."
+  },
+  {
+    tag:"STEP 14 · DONE", title:"The complete control-NFA",
+    body:"14 states (A–N), 8 solid shift-edges, and 6 dashed ε-edges. Start state: A. This is the exact diagram Task A.5 is asking for — every state is a distinct grammar-rule dot-position, and every ε-edge marks a place where a reduction could hand control back to a shift chain.",
+    rules:[0,1,2,3,4,5,6], nodes:[], edges:[],
+    side:"Carry this whole picture forward into A.6: the very next thing you do with it is take the ε-closure of the start state A, which is the first step of subset construction — covered in file 2.",
+    callout:"Notice the two 'fork' states, E and G — both sit before a nullable nonterminal, both have two ε-children. Those forks are exactly where the ambiguity of G (proved in A.2) will resurface as a shift/reduce conflict in the SLR table."
+  }
+];
+
+let cur = 0;
+const progress = document.getElementById('progress');
+steps.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className='dot';
+  d.dataset.i=i;
+  d.onclick=()=>{cur=i; render();};
+  progress.appendChild(d);
+});
+
+function render(){
+  const s = steps[cur];
+  // grammar highlight
+  document.querySelectorAll('.rule').forEach(r=>{
+    const n = parseInt(r.dataset.rule);
+    r.classList.toggle('active', s.rules.includes(n));
+    r.classList.toggle('done', !s.rules.includes(n));
+  });
+  // reveal nodes/edges cumulatively based on max step reached so far == cur (we use explicit reveal-by-index-order)
+  const revealedNodes = new Set();
+  const revealedEdges = new Set();
+  for(let i=0;i<=cur;i++){
+    (steps[i].nodes||[]).forEach(id=>revealedNodes.add(id));
+    (steps[i].edges||[]).forEach(id=>revealedEdges.add(id));
+  }
+  document.querySelectorAll('.node').forEach(n=>{
+    n.classList.toggle('revealed', revealedNodes.has(n.id));
+    n.classList.toggle('spotlight', (s.nodes||[]).includes(n.id));
+  });
+  document.querySelectorAll('.edge').forEach(e=>{
+    e.classList.toggle('revealed', revealedEdges.has(e.id));
+    e.classList.toggle('spotlight', (s.spotlightEdges||s.edges||[]).includes(e.id) );
+  });
+
+  document.getElementById('tag').textContent = s.tag;
+  document.getElementById('ntitle').textContent = s.title;
+  document.getElementById('nbody').textContent = s.body;
+  document.getElementById('sidenote-text').textContent = s.side;
+  const cb = document.getElementById('ncallout');
+  if(s.callout){cb.style.display='block'; cb.textContent = s.callout;} else {cb.style.display='none';}
+
+  document.querySelectorAll('.dot').forEach((d,i)=>{
+    d.classList.toggle('active', i===cur);
+    d.classList.toggle('done', i<cur);
+  });
+  document.getElementById('stepcount').textContent = `Step ${cur+1} / ${steps.length}`;
+  document.getElementById('prev').disabled = cur===0;
+  document.getElementById('next').disabled = cur===steps.length-1;
+}
+document.getElementById('prev').onclick=()=>{if(cur>0){cur--;render();}};
+document.getElementById('next').onclick=()=>{if(cur<steps.length-1){cur++;render();}};
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight') document.getElementById('next').click();
+  if(e.key==='ArrowLeft') document.getElementById('prev').click();
+});
+render();
+</script>
+</body>
+</html>
